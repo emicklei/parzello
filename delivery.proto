@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package main;
+
+service DeliveryService {
+  rpc Deliver (DeliverRequest) returns (DeliverResponse);
+}
+message DeliverRequest {
+  Envelope envelope = 1;
+}
+message DeliverResponse {
+  Timestamp enqueueTime = 1;
+  string errorMessage = 2;
+}
+message Envelope {
+  // fixed data
+  bytes payload = 1;
+  map <string,string> attributes = 2;
+     string destinationTopic = 3;
+     string undeliveredTopic = 4;
+  Timestamp publishAfter     = 5;
+     uint32 maxRetries       = 6;
+}
+message Timestamp {
+  uint64 seconds = 1; // Unix time
+}
+
+// really internal only
+
+message Parcel {
+  Envelope envelope = 1;
+  // in flight data
+  Timestamp enqueueTime  = 2;
+     uint32 requeueCount = 3;
+     uint32 retryCount   = 4;
+}
