@@ -24,53 +24,54 @@ type deliveryServiceImpl struct {
 
 func (d *deliveryServiceImpl) Deliver(ctx context.Context, req *v1.DeliverRequest) (*v1.DeliverResponse, error) {
 	if *verbose {
-		log.Printf("Deliver request for topic [%s] on or after [%v]\n", req.Envelope.DestinationTopic, time.Unix(int64(req.Envelope.PublishAfter.Seconds), 0))
+		log.Printf("deliver request for topic [%s] on or after [%v]\n", req.Envelope.DestinationTopic, timestampToTime(req.Envelope.PublishAfter))
 	}
 
-	// select topic to forward message to
-	// TODO
-	topic := d.client.Topic("parcello_minute")
 	p := new(queue.Parcel)
 	p.Envelope = req.Envelope
-	data, err := proto.Marshal(p)
-	if err != nil {
+	if err := d.transportParcel(ctx, p); err != nil {
 		return &v1.DeliverResponse{ErrorMessage: fmt.Sprintf(errUnknown, err)}, nil
 	}
-	msg := &pubsub.Message{
-		Data: data,
-	}
-	topic.Publish(ctx, msg)
-	return &v1.DeliverResponse{EnqueueTime: &v1.Timestamp{Seconds: uint64(time.Now().Unix())}}, nil
+
+	return new(v1.DeliverResponse), nil
 }
 
-// receivedParcel is called from any of the queue subscription pulls.
-func (d *deliveryServiceImpl) receivedParcel(msg *pubsub.Message) {
-	// payload of message is a Parcel
-	p := new(queue.Parcel)
-	err := proto.Unmarshal(msg.Data, p)
-	if err != nil {
-		log.Println("ERROR", err)
-		return
-	}
-	if *verbose {
-		log.Printf("receivedParcel for topic [%s]\n", p.Envelope.DestinationTopic)
+// transportParcel is called from any of the queue subscription pulls or from Deliver.
+func (d *deliveryServiceImpl) transportParcel(ctx context.Context, p *queue.Parcel) error {
+	now := time.Now()
+	after := timestampToTime(p.Envelope.PublishAfter)
+
+	// see if destination is arrived
+	if after.Before(now) {
+		return d.publishMessageOfParcel(p)
 	}
 
-	// TEMP
-	err = d.publishParcelMessage(p)
-	if err != nil {
-		log.Println("ERROR", err)
-		return
+	wait := after.Sub(now)
+	// pick the queue with the largest duration and within wait
+	// at least one exists, has been checked at startup
+	nextQueue := d.config.Queues[0]
+	for _, each := range d.config.Queues {
+		if wait < each.Duration {
+			break
+		}
+		nextQueue = each
 	}
 
-	if *verbose {
-		log.Printf("ack parcel [%v]: %q\n", msg.ID, string(p.Envelope.Payload))
+	// publish parcel to intermediate queue
+	topic := d.client.Topic(nextQueue.Topic)
+	data, err := proto.Marshal(p)
+	if err != nil {
+		return err
 	}
-	msg.Ack()
+	if *verbose {
+		log.Printf("publish parcel to [%s]", nextQueue.Topic)
+	}
+	topic.Publish(ctx, &pubsub.Message{Data: data})
+	return nil
 }
 
-// publishParcelMessage publishes the payload of the parcel to the destination topic.
-func (d *deliveryServiceImpl) publishParcelMessage(p *queue.Parcel) error {
+// publishMessageOfParcel publishes the payload of the parcel to the destination topic.
+func (d *deliveryServiceImpl) publishMessageOfParcel(p *queue.Parcel) error {
 	if *verbose {
 		log.Printf("publish message to [%s]", p.Envelope.DestinationTopic)
 	}
@@ -81,4 +82,8 @@ func (d *deliveryServiceImpl) publishParcelMessage(p *queue.Parcel) error {
 	}
 	topic.Publish(context.Background(), msg)
 	return nil
+}
+
+func timestampToTime(t *v1.Timestamp) time.Time {
+	return time.Unix(int64(t.Seconds), 0)
 }
