@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "github.com/emicklei/parcello/v1/queue";
+
+import "v1/parcello.proto";
+
+package queue;
+
+// really internal only
+
+message Parcel {
+    v1.Envelope envelope = 1;
+    // in flight data
+    v1.Timestamp enqueueTime  = 2;
+       uint32 requeueCount = 3;
+       uint32 retryCount   = 4;
+  }
+  

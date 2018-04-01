@@ -1,6 +1,8 @@
 syntax = "proto3";
 
-package main;
+option go_package = "github.com/emicklei/parcello/v1";
+
+package v1;
 
 service DeliveryService {
   rpc Deliver (DeliverRequest) returns (DeliverResponse);
@@ -23,14 +25,4 @@ message Envelope {
 }
 message Timestamp {
   uint64 seconds = 1; // Unix time
-}
-
-// really internal only
-
-message Parcel {
-  Envelope envelope = 1;
-  // in flight data
-  Timestamp enqueueTime  = 2;
-     uint32 requeueCount = 3;
-     uint32 retryCount   = 4;
 }

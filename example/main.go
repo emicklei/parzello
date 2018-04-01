@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	parcello "github.com/emicklei/parcello/v1"
 	"google.golang.org/grpc"
 )
 
@@ -14,15 +15,15 @@ func main() {
 		log.Fatal("Dial failed:", err)
 	}
 	defer conn.Close()
-	client := NewDeliveryServiceClient(conn)
+	client := parcello.NewDeliveryServiceClient(conn)
 
 	after := time.Now().Add(1 * time.Minute)
-	in := new(DeliverRequest)
-	in.Envelope = &Envelope{
+	in := new(parcello.DeliverRequest)
+	in.Envelope = &parcello.Envelope{
 		Payload:          []byte("parcello " + time.Now().String()),
 		DestinationTopic: "parcello_destination",
 		UndeliveredTopic: "parcello_undelivered",
-		PublishAfter:     &Timestamp{Seconds: uint64(after.Unix())},
+		PublishAfter:     &parcello.Timestamp{Seconds: uint64(after.Unix())},
 	}
 	out, err := client.Deliver(context.Background(), in)
 	if err != nil {
