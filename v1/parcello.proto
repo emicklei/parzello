@@ -7,20 +7,24 @@ package v1;
 service DeliveryService {
   rpc Deliver (DeliverRequest) returns (DeliverResponse);
 }
+
 message DeliverRequest {
   Envelope envelope = 1;
 }
+
 message DeliverResponse {
   string errorMessage = 1;
 }
+
 message Envelope {
   // fixed data
-  bytes payload = 1;
-  map <string,string> attributes = 2;
-     string destinationTopic = 3;
-     string undeliveredTopic = 4;
-  Timestamp publishAfter     = 5;
+                bytes payload          = 1;
+  map <string,string> attributes       = 2;
+               string destinationTopic = 3;
+            Timestamp publishAfter     = 4;
 }
+
 message Timestamp {
   uint64 seconds = 1; // Unix time
 }
+
