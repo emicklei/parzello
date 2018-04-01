@@ -11,8 +11,7 @@ message DeliverRequest {
   Envelope envelope = 1;
 }
 message DeliverResponse {
-  Timestamp enqueueTime = 1;
-  string errorMessage = 2;
+  string errorMessage = 1;
 }
 message Envelope {
   // fixed data
@@ -21,7 +20,6 @@ message Envelope {
      string destinationTopic = 3;
      string undeliveredTopic = 4;
   Timestamp publishAfter     = 5;
-     uint32 maxRetries       = 6;
 }
 message Timestamp {
   uint64 seconds = 1; // Unix time
