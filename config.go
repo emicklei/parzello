@@ -32,6 +32,9 @@ type Config struct {
 }
 
 func (c Config) checkTopicsAndSubscriptions(client *pubsub.Client) {
+	if len(c.Queues) == 0 {
+		log.Fatalln("at least one queue (topic,subscription) must be configured")
+	}
 	ctx := context.Background()
 	for _, each := range c.Queues {
 		ok, err := client.Topic(each.Topic).Exists(ctx)
