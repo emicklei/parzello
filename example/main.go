@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"time"
 
@@ -25,14 +24,14 @@ func main() {
 
 	client := parcello.NewDeliveryServiceClient(conn)
 
-	for i := 0; i < 100; i++ {
-		d := time.Duration(rand.Intn(10)) * time.Minute
+	for i := 0; i < 1; i++ {
+		//d := time.Duration(rand.Intn(10)) * time.Minute
+		d, _ := time.ParseDuration("6m30s")
 		after := time.Now().Add(d)
 		in := new(parcello.DeliverRequest)
 		in.Envelope = &parcello.Envelope{
 			Payload:          []byte(after.UTC().String()),
 			DestinationTopic: "parcello_destination",
-			UndeliveredTopic: "parcello_undelivered",
 			PublishAfter:     &parcello.Timestamp{Seconds: uint64(after.Unix())},
 		}
 		out, err := client.Deliver(context.Background(), in)
