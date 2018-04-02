@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -26,13 +27,13 @@ func main() {
 
 	for i := 0; i < 1; i++ {
 		//d := time.Duration(rand.Intn(10)) * time.Minute
-		d, _ := time.ParseDuration("6m30s")
+		d, _ := time.ParseDuration("1m30s")
 		after := time.Now().Add(d)
 		in := new(parcello.DeliverRequest)
 		in.Envelope = &parcello.Envelope{
-			Payload:          []byte(after.UTC().String()),
+			Payload:          []byte(strconv.Itoa(i)),
 			DestinationTopic: "parcello_destination",
-			PublishAfter:     &parcello.Timestamp{Seconds: uint64(after.Unix())},
+			PublishAfter:     uint64(after.Unix()),
 		}
 		out, err := client.Deliver(context.Background(), in)
 		if err != nil {
@@ -53,10 +54,22 @@ func drainDestination() {
 	sub := client.Subscription("parcello_destination")
 	err = sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		log.Printf(`id:%s
-	ps published:%s
-	given  after:%s
-	actual after:%s
-`, msg.ID, msg.PublishTime.UTC().String(), string(msg.Data), time.Now().UTC().String())
+                 ps published:%s
+                      payload:%s
+                  parcello.ID:%s
+        parcello.publishAfter:%s
+                 actual after:%s		
+    parcello.destinationTopic:%s
+         parcello.deliveredAt:%s
+`, msg.ID,
+			msg.PublishTime.UTC().String(),
+			string(msg.Data),
+			msg.Attributes["parcello.ID"],
+			msg.Attributes["parcello.publishAfter"],
+			time.Now().UTC().String(),
+			msg.Attributes["parcello.destinationTopic"],
+			msg.Attributes["parcello.deliveredAt"],
+		)
 		msg.Ack()
 	})
 	if err != nil {

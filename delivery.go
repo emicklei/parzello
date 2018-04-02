@@ -7,7 +7,6 @@ import (
 
 	"cloud.google.com/go/pubsub"
 	"github.com/emicklei/parcello/v1"
-	"github.com/emicklei/parcello/v1/queue"
 	"github.com/golang/protobuf/proto"
 	context "golang.org/x/net/context"
 )
@@ -24,12 +23,14 @@ type deliveryServiceImpl struct {
 
 func (d *deliveryServiceImpl) Deliver(ctx context.Context, req *v1.DeliverRequest) (*v1.DeliverResponse, error) {
 	if *verbose {
-		log.Printf("deliver request for topic [%s] on or after [%v]\n", req.Envelope.DestinationTopic, timestampToTime(req.Envelope.PublishAfter))
+		log.Printf("deliver request for topic [%s] on or after [%v]\n", req.Envelope.DestinationTopic, secondsToTime(req.Envelope.PublishAfter))
 	}
-
-	p := new(queue.Parcel)
-	p.Envelope = req.Envelope
-	if err := d.transportParcel(ctx, p); err != nil {
+	req.Envelope.DeliveredAt = uint64(time.Now().Unix())
+	req.Envelope.ID = newUUID()
+	if err := validateEnvelop(req.Envelope); err != nil {
+		return &v1.DeliverResponse{ErrorMessage: err.Error()}, nil
+	}
+	if err := d.transportParcel(ctx, req.Envelope); err != nil {
 		return &v1.DeliverResponse{ErrorMessage: fmt.Sprintf(errUnknown, err)}, nil
 	}
 
@@ -37,13 +38,13 @@ func (d *deliveryServiceImpl) Deliver(ctx context.Context, req *v1.DeliverReques
 }
 
 // transportParcel is called from any of the queue subscription pulls or from Deliver.
-func (d *deliveryServiceImpl) transportParcel(ctx context.Context, p *queue.Parcel) error {
+func (d *deliveryServiceImpl) transportParcel(ctx context.Context, e *v1.Envelope) error {
 	now := time.Now()
-	after := timestampToTime(p.Envelope.PublishAfter)
+	after := secondsToTime(e.PublishAfter)
 
 	// see if destination is arrived
 	if after.Before(now) {
-		return d.publishMessageOfParcel(p)
+		return d.publishMessageOfParcel(e)
 	}
 
 	wait := after.Sub(now)
@@ -58,32 +59,28 @@ func (d *deliveryServiceImpl) transportParcel(ctx context.Context, p *queue.Parc
 	}
 
 	// publish parcel to intermediate queue
-	topic := d.client.Topic(nextQueue.Topic)
-	data, err := proto.Marshal(p)
+	data, err := proto.Marshal(e)
 	if err != nil {
 		return err
 	}
 	if *verbose {
-		log.Printf("publish parcel to [%s]", nextQueue.Topic)
+		log.Printf("publish parcel [%s] to [%s]", e.ID, nextQueue.Topic)
 	}
-	topic.Publish(ctx, &pubsub.Message{Data: data})
+	d.client.Topic(nextQueue.Topic).Publish(ctx, &pubsub.Message{Data: data})
 	return nil
 }
 
 // publishMessageOfParcel publishes the payload of the parcel to the destination topic.
-func (d *deliveryServiceImpl) publishMessageOfParcel(p *queue.Parcel) error {
+func (d *deliveryServiceImpl) publishMessageOfParcel(e *v1.Envelope) error {
 	if *verbose {
-		log.Printf("publish message to [%s]", p.Envelope.DestinationTopic)
+		log.Printf("publish message from parcel [%s] to [%s]", e.ID, e.DestinationTopic)
 	}
-	topic := d.client.Topic(p.Envelope.DestinationTopic)
+	topic := d.client.Topic(e.DestinationTopic)
 	msg := &pubsub.Message{
-		Data:       p.Envelope.Payload,
-		Attributes: p.Envelope.Attributes,
+		Data:       e.Payload,
+		Attributes: e.Attributes,
 	}
+	setMessageAttributes(e, msg)
 	topic.Publish(context.Background(), msg)
 	return nil
-}
-
-func timestampToTime(t *v1.Timestamp) time.Time {
-	return time.Unix(int64(t.Seconds), 0)
 }

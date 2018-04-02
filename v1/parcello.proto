@@ -17,14 +17,30 @@ message DeliverResponse {
 }
 
 message Envelope {
-  // fixed data
-                bytes payload          = 1;
-  map <string,string> attributes       = 2;
-               string destinationTopic = 3;
-            Timestamp publishAfter     = 4;
-}
+  // ID -> pubsub.Message.Attributes["parcello.ID"]
+  // set by the server
+  string ID = 1;
 
-message Timestamp {
-  uint64 seconds = 1; // Unix time
+  // payload -> pubsub.Message.Data
+  bytes payload = 2;
+
+  // attributes -> pubsub.Message.Attributes
+  map <string,string> attributes = 3;
+
+  // destinationTopic -> pubsub.Message.Attributes["parcello.destinationTopic"]
+  // required for the DeliverRequest
+  string destinationTopic = 4;
+
+  // publishAfter -> pubsub.Message.Attributes["parcello.publishAfter"]
+  // required for the DeliverRequest
+  uint64 publishAfter = 5; // unix time   
+
+  // deliveredAt -> pubsub.Message.Attributes["parcello.deliveredAt"]
+  // set by the server to the time the DeliverRequest was sent
+  uint64 deliveredAt = 6; // unix time
+
+  // publishCount -> pubsub.Message.Attributes["parcello.publishCount"]
+  // set by the server to 1 on first publish to destination
+  uint64 publishCount = 7;
 }
 

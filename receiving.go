@@ -5,8 +5,9 @@ import (
 	"log"
 	"time"
 
+	"github.com/emicklei/parcello/v1"
+
 	"cloud.google.com/go/pubsub"
-	"github.com/emicklei/parcello/v1/queue"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -21,8 +22,8 @@ func loopReceiveParcels(client *pubsub.Client, q Queue, service *deliveryService
 		}
 		var delayBeforeReceive time.Duration
 		err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
-			// payload of message is a Parcel
-			p := new(queue.Parcel)
+			// payload of message is an Envelope
+			p := new(v1.Envelope)
 			err := proto.Unmarshal(msg.Data, p)
 			if err != nil {
 				log.Println("Unmarshal parcel error", err)
@@ -31,11 +32,12 @@ func loopReceiveParcels(client *pubsub.Client, q Queue, service *deliveryService
 			}
 			// if the message was fetched too soon then cancel this receiving and enter a sleep
 			now := time.Now()
-			if msg.PublishTime.Add(q.Duration).After(now) {
-				// compute remaining time for this message to stay in the queue
-				delayBeforeReceive = msg.PublishTime.Add(q.Duration).Sub(now)
+			after := secondsToTime(p.PublishAfter)
+			if after.After(now) {
+				// compute remaining time for this message to stay in queues
+				delayBeforeReceive = after.Sub(now)
 				if *verbose {
-					log.Printf("nack parcel and cancel receiving to enter delay, [%v] in queue, remaining [%v]\n", now.Sub(msg.PublishTime), delayBeforeReceive)
+					log.Printf("nack parcel [%s] and cancel receiving to enter delay, [%v] in subscription [%s], remaining [%v]\n", p.ID, now.Sub(msg.PublishTime), q.Subscription, delayBeforeReceive)
 				}
 				msg.Nack()
 				cancel()
@@ -52,7 +54,7 @@ func loopReceiveParcels(client *pubsub.Client, q Queue, service *deliveryService
 			log.Printf("Receive error from [%s]:%v", q.Subscription, err)
 		}
 		if delayBeforeReceive > q.Duration {
-			delayBeforeReceive = q.Duration // do not wait langer than specified by the queue
+			delayBeforeReceive = q.Duration // do not wait longer than specified by the queue
 		}
 		if *verbose {
 			log.Printf("delay start receiving from [%s] for [%v]\n", q.Subscription, delayBeforeReceive)
