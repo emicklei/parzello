@@ -50,5 +50,6 @@ func main() {
 	}
 	grpcServer := grpc.NewServer()
 	v1.RegisterDeliveryServiceServer(grpcServer, service)
+	log.Println("ready to receive deliveries....")
 	log.Fatal(grpcServer.Serve(lis))
 }
