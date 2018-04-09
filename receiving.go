@@ -17,7 +17,7 @@ func loopReceiveParcels(client *pubsub.Client, q Queue, service *deliveryService
 	sub := client.Subscription(q.Subscription)
 	for {
 		ctx, cancel := context.WithCancel(context.Background())
-		if *verbose {
+		if *oVerbose {
 			log.Printf("receiving messages from subscription [%s]\n", q.Subscription)
 		}
 		var delayBeforeReceive time.Duration
@@ -36,7 +36,7 @@ func loopReceiveParcels(client *pubsub.Client, q Queue, service *deliveryService
 			if after.After(now) {
 				// compute remaining time for this message to stay in queues
 				delayBeforeReceive = after.Sub(now)
-				if *verbose {
+				if *oVerbose {
 					log.Printf("nack parcel [%s] and cancel receiving to enter delay, [%v] in subscription [%s], remaining [%v]\n", p.ID, now.Sub(msg.PublishTime), q.Subscription, delayBeforeReceive)
 				}
 				msg.Nack()
@@ -56,7 +56,7 @@ func loopReceiveParcels(client *pubsub.Client, q Queue, service *deliveryService
 		if delayBeforeReceive > q.Duration {
 			delayBeforeReceive = q.Duration // do not wait longer than specified by the queue
 		}
-		if *verbose {
+		if *oVerbose {
 			log.Printf("delay start receiving from [%s] for [%v]\n", q.Subscription, delayBeforeReceive)
 		}
 		time.Sleep(delayBeforeReceive)

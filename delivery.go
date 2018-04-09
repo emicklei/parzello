@@ -22,7 +22,7 @@ type deliveryServiceImpl struct {
 }
 
 func (d *deliveryServiceImpl) Deliver(ctx context.Context, req *v1.DeliverRequest) (*v1.DeliverResponse, error) {
-	if *verbose {
+	if *oVerbose {
 		log.Printf("deliver request for topic [%s] on or after [%v]\n", req.Envelope.DestinationTopic, secondsToTime(req.Envelope.PublishAfter))
 	}
 	req.Envelope.DeliveredAt = uint64(time.Now().Unix())
@@ -63,7 +63,7 @@ func (d *deliveryServiceImpl) transportParcel(ctx context.Context, e *v1.Envelop
 	if err != nil {
 		return err
 	}
-	if *verbose {
+	if *oVerbose {
 		log.Printf("publish parcel [%s] to [%s]", e.ID, nextQueue.Topic)
 	}
 	d.client.Topic(nextQueue.Topic).Publish(ctx, &pubsub.Message{Data: data})
@@ -72,7 +72,7 @@ func (d *deliveryServiceImpl) transportParcel(ctx context.Context, e *v1.Envelop
 
 // publishMessageOfParcel publishes the payload of the parcel to the destination topic.
 func (d *deliveryServiceImpl) publishMessageOfParcel(e *v1.Envelope) error {
-	if *verbose {
+	if *oVerbose {
 		log.Printf("publish message from parcel [%s] to [%s]", e.ID, e.DestinationTopic)
 	}
 	topic := d.client.Topic(e.DestinationTopic)

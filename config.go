@@ -57,7 +57,7 @@ func (c Config) checkTopicsAndSubscriptions(client *pubsub.Client) {
 }
 
 func loadConfig() (config Config, err error) {
-	data, err := ioutil.ReadFile("parcello.config")
+	data, err := ioutil.ReadFile(*oConfig)
 	if err != nil {
 		return
 	}
@@ -71,5 +71,6 @@ func loadConfig() (config Config, err error) {
 	}
 	// sort by duration ascending; shortest first
 	sort.Slice(config.Queues, func(i, j int) bool { return config.Queues[i].Duration < config.Queues[j].Duration })
+	log.Println("loaded configuration from", *oConfig)
 	return config, err
 }

@@ -11,8 +11,11 @@ import (
 	"google.golang.org/grpc"
 )
 
-var verbose = flag.Bool("v", false, "verbose logging")
-var version = "0.1"
+var (
+	oVerbose = flag.Bool("v", false, "verbose logging")
+	oConfig  = flag.String("c", "parcello.config", "location of configuration")
+	version  = "0.1"
+)
 
 func main() {
 	flag.Parse()

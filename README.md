@@ -42,28 +42,13 @@ In the example folder, you can see an example of a Go client implementation.
         ]
     }
 
-## example
+## build
 
-### prepare infrastructure
- 
-    gcloud pubsub topics create parcello_destination
-    gcloud pubsub topics create parcello_minute
-    gcloud pubsub topics create parcello_five_minutes
+    docker build -t parcello .
 
-and the subscriptions
+## run
 
-    gcloud pubsub subscriptions create parcello_destination  --topic parcello_destination --topic-project philemonworks
-    gcloud pubsub subscriptions create parcello_minute       --topic parcello_minute      --topic-project philemonworks
-    gcloud pubsub subscriptions create parcello_five_minutes --topic parcello_five_minutes --topic-project philemonworks
-
-### start the server    
-
-    go run *.go
-
-### running the example
-
-    cd test && go run *.go
-
-### pull from destination
-
-    gcloud pubsub subscriptions pull --auto-ack parcello_destination
+    docker run -it \
+        -v ~/.config/gcloud/:/gcloud \
+        -e GOOGLE_APPLICATION_CREDENTIALS=/gcloud/application_default_credentials.json \
+        parcello
