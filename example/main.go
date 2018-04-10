@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"strconv"
 	"time"
@@ -13,6 +14,8 @@ import (
 	parcello "github.com/emicklei/parcello/v1"
 	"google.golang.org/grpc"
 )
+
+// GCP_PROJECT=philemonworks go run main.go
 
 func main() {
 	conn, err := grpc.Dial("localhost:9090", grpc.WithInsecure())
@@ -25,9 +28,9 @@ func main() {
 
 	client := parcello.NewDeliveryServiceClient(conn)
 
-	for i := 0; i < 1; i++ {
-		//d := time.Duration(rand.Intn(10)) * time.Minute
-		d, _ := time.ParseDuration("1m30s")
+	for i := 0; i < 100; i++ {
+		d := time.Duration(rand.Intn(12)) * time.Minute
+		//d, _ := time.ParseDuration("1m30s")
 		after := time.Now().Add(d)
 		in := new(parcello.DeliverRequest)
 		in.Envelope = &parcello.Envelope{
@@ -47,28 +50,28 @@ func main() {
 
 func drainDestination() {
 	ctx := context.Background()
-	client, err := pubsub.NewClient(ctx, "philemonworks")
+	client, err := pubsub.NewClient(ctx, os.Getenv("GCP_PROJECT"))
 	if err != nil {
 		log.Fatalf("failed to create PubSub client: %v", err)
 	}
 	sub := client.Subscription("parcello_destination")
 	err = sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		log.Printf(`id:%s
+         parcello.deliveredAt:%s
                  ps published:%s
                       payload:%s
-                  parcello.ID:%s
         parcello.publishAfter:%s
-                 actual after:%s		
+                 actual after:%s
     parcello.destinationTopic:%s
-         parcello.deliveredAt:%s
+                  parcello.ID:%s
 `, msg.ID,
+			msg.Attributes["parcello.deliveredAt"],
 			msg.PublishTime.UTC().String(),
 			string(msg.Data),
-			msg.Attributes["parcello.ID"],
 			msg.Attributes["parcello.publishAfter"],
 			time.Now().UTC().String(),
 			msg.Attributes["parcello.destinationTopic"],
-			msg.Attributes["parcello.deliveredAt"],
+			msg.Attributes["parcello.ID"],
 		)
 		msg.Ack()
 	})
