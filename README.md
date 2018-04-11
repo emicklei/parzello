@@ -14,7 +14,7 @@ In this diagram, 2 such topics exists. One is pulled every 5 minutes.
 Each message is inspected to see whether it is about time to publish it to the actual destination topic.
 
 For example, a message that need to be delivered after 8 minutes will be published to `parcello_5_minutes` once and to `parcello_1_minute ` 3 times.
-Using a configuration, you can specify how many intermediary topics you need based on your estimations of the actual delay amounts.
+Using a configuration, you can specify which intermediary topics you have created with durations based on your estimations of the actual delay amounts.
 
 ![](./doc/parcello_delay.png)
 
@@ -35,15 +35,12 @@ In the example folder, you can see an example of a Go client implementation. Usi
 
 The `parcello` server configuration list one or more queues (intermediate topic+subscriptions).
 This example show 2 such queues. 
-
+The topics and subscriptions must be created upfront in the project `YOUR GCP PROJECT`.
+A duration string is a possibly signed sequence of decimal numbers, each with optional fraction and a unit suffix, such as "60s", "1.5h" or "2h45m". Valid time units are "ms", "s", "m", "h".
 
     {
         "project":"YOUR GCP PROJECT",
-        "queues": [{
-                "topic": "parcello_1_minute",
-                "subscription": "parcello_1_minute",
-                "duration": "1m"
-            },
+        "queues": [
             {
                 "topic": "parcello_5_minutes",
                 "subscription": "parcello_5_minutes",
