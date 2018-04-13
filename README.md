@@ -4,6 +4,25 @@ Parcello is a delivery service on top of Google Pub Sub to publish messages with
 It uses multiple intermediate topic->subscriptions to queue such messages which are pulled (streaming) on computed time intervals.
 These intermediate resources (topics, subscription) need to be created before deploying this service with the corresponding configuration.
 
+## use cases
+Parcello was created to support a couple of unusual usecases.
+
+### backoff or postpone processing
+Consider the situation that the subscriber is unable to process a message because its backend services are not available.
+Each such message can not be acknowledge.
+Therefore it will be offered on the next pull (or push) causing many operation calls which are responsible for increased network traffic.
+One solution is to deliver those messages to `parcello` for the purpose of retrying it later.
+Alternatively, the subscriber could have the capability to stop|pause the pulling process.
+
+### late night or bulk processing
+Consider the requirement that messages need to be processed in a certain time window only (at night when more resources are available).
+One solution is to deliver those messages to `parcello` for the purpose of having them published later.
+
+### out of order
+Pub Sub, like most message queueing solutions, does not guarantee that messages are delivered in the same order as they were published. This must be taken into account when designing the message definition and the subscriber software architecture. So rather then publishing events such as "order created", "order detail changed" one should have a single event "order updated" with all information about the order and the timestamp when it was updated.
+If this design is not possible then the subscriber must handle the situation that an "order changed" event is received before an "order created" for the same entity.
+One solution is to deliver those messages to `parcello` for the purpose of having them published again later.
+Ofcourse this is a fragile design and can lead to problems (what if the created event was never published?) so be aware of this when using `parcello` for this case.
 
 ## how does it work?
 
