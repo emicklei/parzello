@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/pubsub"
-	"github.com/emicklei/parcello/v1"
+	"github.com/emicklei/parzello/v1"
 )
 
 func validateEnvelop(e *v1.Envelope) error {
@@ -28,10 +28,10 @@ func setMessageAttributes(e *v1.Envelope, m *pubsub.Message) {
 	if m.Attributes == nil {
 		m.Attributes = map[string]string{}
 	}
-	m.Attributes["parcello.ID"] = e.ID
-	m.Attributes["parcello.destinationTopic"] = e.DestinationTopic
-	m.Attributes["parcello.publishAfter"] = secondsToTime(e.PublishAfter).UTC().String()
-	m.Attributes["parcello.deliveredAt"] = secondsToTime(e.DeliveredAt).UTC().String()
+	m.Attributes["parzello.ID"] = e.ID
+	m.Attributes["parzello.destinationTopic"] = e.DestinationTopic
+	m.Attributes["parzello.publishAfter"] = secondsToTime(e.PublishAfter).UTC().String()
+	m.Attributes["parzello.deliveredAt"] = secondsToTime(e.DeliveredAt).UTC().String()
 }
 
 func newUUID() string {

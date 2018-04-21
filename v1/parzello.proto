@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/emicklei/parcello/v1";
+option go_package = "github.com/emicklei/parzello/v1";
 
 package v1;
 
@@ -17,7 +17,7 @@ message DeliverResponse {
 }
 
 message Envelope {
-  // ID -> pubsub.Message.Attributes["parcello.ID"]
+  // ID -> pubsub.Message.Attributes["parzello.ID"]
   // set by the server
   string ID = 1;
 
@@ -27,19 +27,19 @@ message Envelope {
   // attributes -> pubsub.Message.Attributes
   map <string,string> attributes = 3;
 
-  // destinationTopic -> pubsub.Message.Attributes["parcello.destinationTopic"]
+  // destinationTopic -> pubsub.Message.Attributes["parzello.destinationTopic"]
   // required for the DeliverRequest
   string destinationTopic = 4;
 
-  // publishAfter -> pubsub.Message.Attributes["parcello.publishAfter"]
+  // publishAfter -> pubsub.Message.Attributes["parzello.publishAfter"]
   // required for the DeliverRequest
   uint64 publishAfter = 5; // unix time   
 
-  // deliveredAt -> pubsub.Message.Attributes["parcello.deliveredAt"]
+  // deliveredAt -> pubsub.Message.Attributes["parzello.deliveredAt"]
   // set by the server to the time the DeliverRequest was sent
   uint64 deliveredAt = 6; // unix time
 
-  // publishCount -> pubsub.Message.Attributes["parcello.publishCount"]
+  // publishCount -> pubsub.Message.Attributes["parzello.publishCount"]
   // set by the server to 1 on first publish to destination
   uint64 publishCount = 7;
 }

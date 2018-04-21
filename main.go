@@ -7,19 +7,19 @@ import (
 	"net"
 
 	"cloud.google.com/go/pubsub"
-	"github.com/emicklei/parcello/v1"
+	"github.com/emicklei/parzello/v1"
 	"google.golang.org/grpc"
 )
 
 var (
 	oVerbose = flag.Bool("v", false, "verbose logging")
-	oConfig  = flag.String("c", "parcello.config", "location of configuration")
+	oConfig  = flag.String("c", "parzello.config", "location of configuration")
 	version  = "0.1"
 )
 
 func main() {
 	flag.Parse()
-	log.Println("parcello, the pubsub delivery service -- version", version)
+	log.Println("parzello, the pubsub delivery service -- version", version)
 	config, err := loadConfig()
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)

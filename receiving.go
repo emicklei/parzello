@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/emicklei/parcello/v1"
+	"github.com/emicklei/parzello/v1"
 
 	"cloud.google.com/go/pubsub"
 	"github.com/golang/protobuf/proto"

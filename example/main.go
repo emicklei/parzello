@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/pubsub"
-	parcello "github.com/emicklei/parcello/v1"
+	parzello "github.com/emicklei/parzello/v1"
 	"google.golang.org/grpc"
 )
 
@@ -26,16 +26,16 @@ func main() {
 
 	go drainDestination()
 
-	client := parcello.NewDeliveryServiceClient(conn)
+	client := parzello.NewDeliveryServiceClient(conn)
 
 	for i := 0; i < 100; i++ {
 		d := time.Duration(rand.Intn(12)) * time.Minute
 		//d, _ := time.ParseDuration("1m30s")
 		after := time.Now().Add(d)
-		in := new(parcello.DeliverRequest)
-		in.Envelope = &parcello.Envelope{
+		in := new(parzello.DeliverRequest)
+		in.Envelope = &parzello.Envelope{
 			Payload:          []byte(strconv.Itoa(i)),
-			DestinationTopic: "parcello_destination",
+			DestinationTopic: "parzello_destination",
 			PublishAfter:     uint64(after.Unix()),
 		}
 		out, err := client.Deliver(context.Background(), in)
@@ -54,24 +54,25 @@ func drainDestination() {
 	if err != nil {
 		log.Fatalf("failed to create PubSub client: %v", err)
 	}
-	sub := client.Subscription("parcello_destination")
+	sub := client.Subscription("parzello_destination")
 	err = sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		log.Printf(`id:%s
-         parcello.deliveredAt:%s
+-----------------			
+         parzello.deliveredAt:%s
                  ps published:%s
                       payload:%s
-        parcello.publishAfter:%s
+        parzello.publishAfter:%s
                  actual after:%s
-    parcello.destinationTopic:%s
-                  parcello.ID:%s
+    parzello.destinationTopic:%s
+                  parzello.ID:%s
 `, msg.ID,
-			msg.Attributes["parcello.deliveredAt"],
+			msg.Attributes["parzello.deliveredAt"],
 			msg.PublishTime.UTC().String(),
 			string(msg.Data),
-			msg.Attributes["parcello.publishAfter"],
+			msg.Attributes["parzello.publishAfter"],
 			time.Now().UTC().String(),
-			msg.Attributes["parcello.destinationTopic"],
-			msg.Attributes["parcello.ID"],
+			msg.Attributes["parzello.destinationTopic"],
+			msg.Attributes["parzello.ID"],
 		)
 		msg.Ack()
 	})
