@@ -9,10 +9,10 @@ Parzello was created to support a couple of unusual usecases.
 
 ### backoff or postpone processing
 Consider the situation that the subscriber is unable to process a message because its backend services are not available.
-Each such message can not be acknowledge.
-Therefore it will be offered on the next pull (or push) causing many operation calls which are responsible for increased network traffic.
+Each such message can not be acknowledged.
+Therefore it will be offered on the next pull (or push) causing many operation calls which cause increased network traffic.
 One solution is to deliver those messages to `parzello` for the purpose of retrying it later.
-Alternatively, the subscriber could have the capability to stop|pause the pulling process.
+Alternatively, the subscriber could be given the capability to stop|pause the pulling process.
 
 ### late night or bulk processing
 Consider the requirement that messages need to be processed in a certain time window only (at night when more resources are available).
