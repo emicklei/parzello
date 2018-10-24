@@ -26,7 +26,7 @@ func (q Queue) postLoaded() (Queue, error) {
 
 // Config is read from a configuration JSON file.
 type Config struct {
-	Project string `json:"project"`
+	Project string `json:"project-id"`
 	// Queues is sorted by Duration, shortest first
 	Queues []Queue `json:"queues"`
 }

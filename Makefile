@@ -1,11 +1,4 @@
-.PHONY: gen fmt run dock drun
-
-gen:
-	rm -f v1/parzello.pb.go
-	protoc -I. --go_out=plugins=grpc:${GOPATH}/src v1/parzello.proto
-
-fmt:
-	protofmt -w v1/parzello.proto
+.PHONY: run dock drun
 
 run:
 	go run *.go -v

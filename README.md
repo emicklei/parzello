@@ -26,8 +26,9 @@ Ofcourse this is a fragile design and can lead to problems (what if the created 
 
 ## how does it work?
 
-Instead of the publisher publishing to a topic, it sends a DeliverRequest to `parzello` specifying the time to delay the publish. 
-The service will publish that request to one of its intermediary topics. 
+
+Instead of the publisher publishing to its destination topic, it publishes the message to a `parzello` PubSub topic specifying the time to delay the publish using meta data.
+The `parzello` service will publish that message to one of its intermediary topics. 
 Each such topic has its own listener (pulling messaging) at a time interval.
 In this diagram, 2 such topics exists. One is pulled every 5 minutes. 
 Each message is inspected to see whether it is about time to publish it to the actual destination topic.
@@ -38,17 +39,11 @@ Using a configuration, you can specify which intermediary topics you have create
 ![](./doc/parzello_delay.png)
 
 In the next design, `parzello` is used to retry publishing a message at a later moment.
-By passing the PublishCount into the retry DeliverRequest, a subscriber can inspect this value and behave accordingly (i.e abort on MaxRetries).
+By passing publisch count metadata to the retry message, a subscriber can inspect this value and behave accordingly (i.e abort on MaxRetries).
 
 ![](./doc/parzello_delay_retry.png)
 
 ## usage
-
-### api
-
-This services uses gRPC for its API access.
-The proto definition can be found in the /v1 folder.
-In the example folder, you can see an example of a Go client implementation. Using `protoc` tools, you can generate a client for your programming language.
 
 ### server config
 
@@ -58,7 +53,7 @@ The topics and subscriptions must be created upfront in the project `YOUR GCP PR
 A duration string is a possibly signed sequence of decimal numbers, each with optional fraction and a unit suffix, such as "60s", "1.5h" or "2h45m". Valid time units are "ms", "s", "m", "h".
 
     {
-        "project":"YOUR GCP PROJECT",
+        "project-id":"YOUR GCP PROJECT",
         "queues": [
             {
                 "topic": "parzello_5_minutes",
