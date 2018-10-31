@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"strconv"
 	"time"
 
 	"cloud.google.com/go/pubsub"
@@ -38,4 +39,12 @@ func newUUID() string {
 	u := make([]byte, 16)
 	_, _ = rand.Read(u)
 	return hex.EncodeToString(u)
+}
+
+func timeFromSecondsString(s string) (time.Time, error) {
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return time.Now(), err
+	}
+	return time.Unix(int64(i), 0), nil
 }

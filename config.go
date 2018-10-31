@@ -26,7 +26,8 @@ func (q Queue) postLoaded() (Queue, error) {
 
 // Config is read from a configuration JSON file.
 type Config struct {
-	Project string `json:"project-id"`
+	Project      string `json:"project-id"`
+	Subscription string `json:"subscription"`
 	// Queues is sorted by Duration, shortest first
 	Queues []Queue `json:"queues"`
 }
@@ -36,10 +37,19 @@ func (c Config) checkTopicsAndSubscriptions(client *pubsub.Client) {
 		log.Fatalln("at least one queue (topic,subscription) must be configured")
 	}
 	ctx := context.Background()
+	// check inbound subscription
+	ok, err := client.Subscription(c.Subscription).Exists(ctx)
+	if err != nil {
+		log.Fatalf("failed to check existence: %v", err)
+	}
+	if !ok {
+		log.Fatalf("subscription [%s] does not exist", c.Subscription)
+	}
+	// check all queues
 	for _, each := range c.Queues {
 		ok, err := client.Topic(each.Topic).Exists(ctx)
 		if err != nil {
-			log.Fatalf("failed to check existance: %v", err)
+			log.Fatalf("failed to check existence: %v", err)
 		}
 		log.Printf("check exists topic [%s]\n", each.Topic)
 		if !ok {
@@ -48,10 +58,10 @@ func (c Config) checkTopicsAndSubscriptions(client *pubsub.Client) {
 		log.Printf("check exists subscription [%s]\n", each.Subscription)
 		ok, err = client.Subscription(each.Subscription).Exists(ctx)
 		if err != nil {
-			log.Fatalf("failed to check existance: %v", err)
+			log.Fatalf("failed to check existence: %v", err)
 		}
 		if !ok {
-			log.Fatalf("subscription [%s] does not exist: %v", each.Subscription, err)
+			log.Fatalf("subscription [%s] does not exist", each.Subscription)
 		}
 	}
 }

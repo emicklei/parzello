@@ -4,17 +4,15 @@ import (
 	"context"
 	"flag"
 	"log"
-	"net"
+	"sync"
 
 	"cloud.google.com/go/pubsub"
-	"github.com/emicklei/parzello/v1"
-	"google.golang.org/grpc"
 )
 
 var (
 	oVerbose = flag.Bool("v", false, "verbose logging")
 	oConfig  = flag.String("c", "parzello.config", "location of configuration")
-	version  = "0.1"
+	version  = "0.2"
 )
 
 func main() {
@@ -39,17 +37,22 @@ func main() {
 
 	// schedule parcel listeners
 	service := &deliveryServiceImpl{client: client, config: config}
+	g := new(sync.WaitGroup)
+	g.Add(1)
+	go func() {
+		if err := service.Accept(ctx); err != nil {
+			log.Println("Accept failed", err)
+		}
+		g.Done()
+	}()
+	log.Println("ready to accept deliveries....")
 	for _, each := range config.Queues {
-		go loopReceiveParcels(client, each, service)
+		g.Add(1)
+		go func(next Queue) {
+			loopReceiveParcels(client, next, service)
+			g.Done()
+		}(each)
 	}
-
-	// start server
-	lis, err := net.Listen("tcp", ":9090")
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	grpcServer := grpc.NewServer()
-	v1.RegisterDeliveryServiceServer(grpcServer, service)
-	log.Println("ready to receive deliveries....")
-	log.Fatal(grpcServer.Serve(lis))
+	log.Println("ready to handle deliveries....")
+	g.Wait()
 }

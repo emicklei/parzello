@@ -33,7 +33,7 @@ Each such topic has its own listener (pulling messaging) at a time interval.
 In this diagram, 2 such topics exists. One is pulled every 5 minutes. 
 Each message is inspected to see whether it is about time to publish it to the actual destination topic.
 
-For example, a message that need to be delivered after 8 minutes will be published to `parzello_5_minutes` once and to `parzello_1_minute ` 3 times.
+For example, a message that needs to be delivered after 8 minutes will be published to `parzello_5_minutes` once and 3 times to `parzello_1_minute `.
 Using a configuration, you can specify which intermediary topics you have created with durations based on your estimations of the actual delay amounts.
 
 ![](./doc/parzello_delay.png)
@@ -45,6 +45,20 @@ By passing publisch count metadata to the retry message, a subscriber can inspec
 
 ## usage
 
+### message attributes
+
+#### input
+|name                       |required   |comment
+|parzello.destinationTopic  |true       |topic to which the message eventually must be published
+|parzello.publishAfter      |false      |Unix time (seconds after 1970) after which the message must be published
+
+
+#### output
+|name                       |comment
+|parzello.deliveredAt       |set to the actual Unix time of publishing to the destination topic
+|parzello.publishCount      |set to 1 if missing otherwise it is incremented when received by parzello
+
+
 ### server config
 
 The `parzello` server configuration list one or more queues (intermediate topic+subscriptions).
@@ -54,6 +68,7 @@ A duration string is a possibly signed sequence of decimal numbers, each with op
 
     {
         "project-id":"YOUR GCP PROJECT",
+        "subscription: "parzello_inbound",
         "queues": [
             {
                 "topic": "parzello_5_minutes",

@@ -21,6 +21,19 @@ type deliveryServiceImpl struct {
 	config Config
 }
 
+func (d *deliveryServiceImpl) Accept(ctx context.Context) error {
+	sub := d.client.Subscription(d.config.Subscription)
+	return sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
+		if *oVerbose {
+			// TODO handle err
+			t, _ := timeFromSecondsString(msg.Attributes[AttrPublishAfter])
+			log.Printf("accept message for topic [%s] on or after [%v]\n", msg.Attributes[AttrDestinationTopic], t)
+		}
+		// TODO
+		msg.Ack()
+	})
+}
+
 func (d *deliveryServiceImpl) Deliver(ctx context.Context, req *v1.DeliverRequest) (*v1.DeliverResponse, error) {
 	if *oVerbose {
 		log.Printf("deliver request for topic [%s] on or after [%v]\n", req.Envelope.DestinationTopic, secondsToTime(req.Envelope.PublishAfter))
