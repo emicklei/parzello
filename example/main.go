@@ -1,6 +1,48 @@
 package main
 
 import (
+	"context"
+	"fmt"
+	"log"
+	"math/rand"
+	"os"
+	"time"
+
+	"cloud.google.com/go/pubsub"
+)
+
+// GCP_PROJECT=philemonworks go run main.go
+
+func main() {
+	ctx := context.Background()
+	client, err := pubsub.NewClient(ctx, os.Getenv("GCP_PROJECT"))
+	if err != nil {
+		log.Fatalf("failed to create PubSub client: %v", err)
+	}
+	defer client.Close()
+	dur := time.Duration(rand.Intn(12)) * time.Minute
+	after := time.Now().Add(dur)
+	msg := &pubsub.Message{
+		Data: []byte("parzello"),
+		Attributes: map[string]string{
+			"parzello.destinationTopic": "parzello_sink",
+			"parzello.publishAfter":     fmt.Sprintf("%d", after.Unix()),
+		},
+	}
+	topic := client.Topic("parzello_inbound_topic")
+	r := topic.Publish(ctx, msg)
+	id, err := r.Get(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Published a message to the topic.", id)
+	topic.Stop()
+}
+
+/**
+package main
+
+import (
 	"bufio"
 	"context"
 	"fmt"
@@ -57,7 +99,7 @@ func drainDestination() {
 	sub := client.Subscription("parzello_destination")
 	err = sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		log.Printf(`id:%s
------------------			
+-----------------
          parzello.deliveredAt:%s
                  ps published:%s
                       payload:%s
@@ -80,3 +122,4 @@ func drainDestination() {
 		log.Printf("Receiving stopped with error %v", err)
 	}
 }
+**/

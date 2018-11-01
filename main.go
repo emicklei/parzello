@@ -11,13 +11,13 @@ import (
 
 var (
 	oVerbose = flag.Bool("v", false, "verbose logging")
-	oConfig  = flag.String("c", "parzello.config", "location of configuration")
+	oConfig  = flag.String("c", "parzello.yaml", "location of configuration")
 	version  = "0.2"
 )
 
 func main() {
 	flag.Parse()
-	log.Println("parzello, the pubsub delivery service -- version", version)
+	log.Printf("parzello, the pubsub delivery service -- version:%s, vverbose:%v\n", version, *oVerbose)
 	config, err := loadConfig()
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
@@ -36,16 +36,16 @@ func main() {
 	config.checkTopicsAndSubscriptions(client)
 
 	// schedule parcel listeners
-	service := &deliveryServiceImpl{client: client, config: config}
+	service := newDeliveryService(config, client)
 	g := new(sync.WaitGroup)
 	g.Add(1)
 	go func() {
+		log.Printf("ready to accept deliveries on [%s]\n", config.Subscription)
 		if err := service.Accept(ctx); err != nil {
 			log.Println("Accept failed", err)
 		}
 		g.Done()
 	}()
-	log.Println("ready to accept deliveries....")
 	for _, each := range config.Queues {
 		g.Add(1)
 		go func(next Queue) {
@@ -53,6 +53,5 @@ func main() {
 			g.Done()
 		}(each)
 	}
-	log.Println("ready to handle deliveries....")
 	g.Wait()
 }

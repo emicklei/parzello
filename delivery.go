@@ -3,11 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/pubsub"
-	"github.com/emicklei/parzello/v1"
-	"github.com/golang/protobuf/proto"
 	context "golang.org/x/net/context"
 )
 
@@ -16,48 +15,54 @@ var (
 	errPublish = "1001: failed to publish to [%v]"
 )
 
-type deliveryServiceImpl struct {
-	client *pubsub.Client
-	config Config
+type deliveryService struct {
+	client      *pubsub.Client
+	config      Config
+	topicsMutex *sync.RWMutex
+	topics      map[string]*pubsub.Topic
 }
 
-func (d *deliveryServiceImpl) Accept(ctx context.Context) error {
+func newDeliveryService(con Config, c *pubsub.Client) *deliveryService {
+	return &deliveryService{
+		client:      c,
+		config:      con,
+		topicsMutex: new(sync.RWMutex),
+		topics:      map[string]*pubsub.Topic{},
+	}
+}
+
+func (d *deliveryService) Accept(ctx context.Context) error {
 	sub := d.client.Subscription(d.config.Subscription)
 	return sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		if *oVerbose {
 			// TODO handle err
 			t, _ := timeFromSecondsString(msg.Attributes[AttrPublishAfter])
-			log.Printf("accept message for topic [%s] on or after [%v]\n", msg.Attributes[AttrDestinationTopic], t)
+			log.Printf("accept message from topic [%s] to be delivered on or after [%v]\n", msg.Attributes[AttrDestinationTopic], t)
 		}
-		// TODO
+		msg.Attributes[AttrOriginalMessageID] = msg.ID
+		msg.Attributes[AttrEntryTime] = timeToSecondsString(msg.PublishTime)
+		if err := d.transportMessage(ctx, msg); err != nil {
+			log.Printf("unable to transport message:%v\n", err)
+			return
+		}
+		if *oVerbose {
+			log.Println("acknowledge accepted message", msg.ID)
+		}
 		msg.Ack()
 	})
 }
 
-func (d *deliveryServiceImpl) Deliver(ctx context.Context, req *v1.DeliverRequest) (*v1.DeliverResponse, error) {
-	if *oVerbose {
-		log.Printf("deliver request for topic [%s] on or after [%v]\n", req.Envelope.DestinationTopic, secondsToTime(req.Envelope.PublishAfter))
-	}
-	req.Envelope.DeliveredAt = uint64(time.Now().Unix())
-	req.Envelope.ID = newUUID()
-	if err := validateEnvelop(req.Envelope); err != nil {
-		return &v1.DeliverResponse{ErrorMessage: err.Error()}, nil
-	}
-	if err := d.transportParcel(ctx, req.Envelope); err != nil {
-		return &v1.DeliverResponse{ErrorMessage: fmt.Sprintf(errUnknown, err)}, nil
-	}
-
-	return new(v1.DeliverResponse), nil
-}
-
-// transportParcel is called from any of the queue subscription pulls or from Deliver.
-func (d *deliveryServiceImpl) transportParcel(ctx context.Context, e *v1.Envelope) error {
+// transportMessage is called from any of the queue subscription pulls or from Deliver.
+func (d *deliveryService) transportMessage(ctx context.Context, m *pubsub.Message) error {
 	now := time.Now()
-	after := secondsToTime(e.PublishAfter)
+	after, err := timeFromSecondsString(m.Attributes[AttrPublishAfter])
+	if err != nil {
+		return fmt.Errorf("invalid publish after attribute:%v", err)
+	}
 
 	// see if destination is arrived
 	if after.Before(now) {
-		return d.publishMessageOfParcel(e)
+		return d.publishToDestination(ctx, m)
 	}
 
 	wait := after.Sub(now)
@@ -70,30 +75,49 @@ func (d *deliveryServiceImpl) transportParcel(ctx context.Context, e *v1.Envelop
 		}
 		nextQueue = each
 	}
-
-	// publish parcel to intermediate queue
-	data, err := proto.Marshal(e)
-	if err != nil {
-		return err
+	// new message
+	// TODO set PublishCount
+	// TODO set Time info
+	msg := &pubsub.Message{
+		Data:       m.Data,
+		Attributes: m.Attributes,
 	}
 	if *oVerbose {
-		log.Printf("publish parcel [%s] to [%s]", e.ID, nextQueue.Topic)
+		log.Printf("publish message [%s] to [%s]", m.ID, nextQueue.Topic)
 	}
-	d.client.Topic(nextQueue.Topic).Publish(ctx, &pubsub.Message{Data: data})
+	d.topicNamed(nextQueue.Topic).Publish(ctx, msg)
 	return nil
 }
 
-// publishMessageOfParcel publishes the payload of the parcel to the destination topic.
-func (d *deliveryServiceImpl) publishMessageOfParcel(e *v1.Envelope) error {
+// publishToDestination publishes the message to the destination topic.
+func (d *deliveryService) publishToDestination(ctx context.Context, m *pubsub.Message) error {
 	if *oVerbose {
-		log.Printf("publish message from parcel [%s] to [%s]", e.ID, e.DestinationTopic)
+		log.Printf("publish message [%s] to [%s]", m.ID, m.Attributes[AttrDestinationTopic])
 	}
-	topic := d.client.Topic(e.DestinationTopic)
+	// new message
+	// TODO set PublishCount
+	// TODO set Time info
 	msg := &pubsub.Message{
-		Data:       e.Payload,
-		Attributes: e.Attributes,
+		Data:       m.Data,
+		Attributes: m.Attributes,
 	}
-	setMessageAttributes(e, msg)
-	topic.Publish(context.Background(), msg)
+	//setMessageAttributes(e, msg)
+	updatePublishCount(m)
+	d.topicNamed(m.Attributes[AttrDestinationTopic]).Publish(ctx, msg)
 	return nil
+}
+
+func (d *deliveryService) topicNamed(name string) *pubsub.Topic {
+	d.topicsMutex.RLock()
+	t, ok := d.topics[name]
+	d.topicsMutex.RUnlock()
+	if ok {
+		return t
+	}
+	// create
+	d.topicsMutex.Lock()
+	t = d.client.Topic(name)
+	d.topics[name] = t
+	d.topicsMutex.Unlock()
+	return t
 }

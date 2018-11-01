@@ -2,21 +2,21 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"io/ioutil"
 	"log"
 	"sort"
 	"time"
 
 	"cloud.google.com/go/pubsub"
+	"github.com/go-yaml/yaml"
 )
 
 // Queue is a topic,subscription pair for storing Parcels for some duration.
 type Queue struct {
-	Topic             string `json:"topic"`
-	Subscription      string `json:"subscription"`
-	FormattedDuration string `json:"duration"`
-	Duration          time.Duration
+	Topic             string        `yaml:"topic"`
+	Subscription      string        `yaml:"subscription"`
+	FormattedDuration string        `yaml:"duration"`
+	Duration          time.Duration `yaml:"-"`
 }
 
 func (q Queue) postLoaded() (Queue, error) {
@@ -26,10 +26,10 @@ func (q Queue) postLoaded() (Queue, error) {
 
 // Config is read from a configuration JSON file.
 type Config struct {
-	Project      string `json:"project-id"`
-	Subscription string `json:"subscription"`
+	Project      string `yaml:"project-id"`
+	Subscription string `yaml:"subscription"`
 	// Queues is sorted by Duration, shortest first
-	Queues []Queue `json:"queues"`
+	Queues []Queue `yaml:"queues"`
 }
 
 func (c Config) checkTopicsAndSubscriptions(client *pubsub.Client) {
@@ -71,7 +71,7 @@ func loadConfig() (config Config, err error) {
 	if err != nil {
 		return
 	}
-	err = json.Unmarshal(data, &config)
+	err = yaml.Unmarshal(data, &config)
 	for i, each := range config.Queues {
 		other, err := each.postLoaded()
 		if err != nil {

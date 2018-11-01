@@ -5,10 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/emicklei/parzello/v1"
-
 	"cloud.google.com/go/pubsub"
-	"github.com/golang/protobuf/proto"
 )
 
 // loopReceiveParcels receives messages during a limited amount of time (queue.Duration)
@@ -22,36 +19,32 @@ func loopReceiveParcels(client *pubsub.Client, q Queue, service *deliveryService
 		}
 		var delayBeforeReceive time.Duration
 		err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
-			// payload of message is an Envelope
-			p := new(v1.Envelope)
-			err := proto.Unmarshal(msg.Data, p)
-			if err != nil {
-				log.Println("Unmarshal parcel error", err)
-				msg.Nack()
-				return
-			}
 			// if the message was fetched too soon then cancel this receiving and enter a sleep
 			now := time.Now()
-			after := secondsToTime(p.PublishAfter)
+			after, err := timeFromSecondsString(msg.Attributes[AttrPublishAfter])
+			if err != nil {
+				log.Printf("invalid publish after attribute:%v\n", err)
+				return
+			}
 			if after.After(now) {
 				// compute remaining time for this message to stay in queues
 				delayBeforeReceive = after.Sub(now)
 				if *oVerbose {
-					log.Printf("nack parcel [%s] and cancel receiving to enter delay, [%v] in subscription [%s], remaining [%v]\n", p.ID, now.Sub(msg.PublishTime), q.Subscription, delayBeforeReceive)
+					log.Printf("nack message [%s] and cancel receiving to enter delay, [%v] in subscription [%s], remaining [%v]\n", msg.ID, now.Sub(msg.PublishTime), q.Subscription, delayBeforeReceive)
 				}
 				msg.Nack()
 				cancel()
 				return
 			}
-			if err := service.transportParcel(ctx, p); err == nil {
+			if err := service.transportMessage(ctx, msg); err == nil {
 				msg.Ack()
 			} else {
-				log.Println("transportParcel error", err)
+				log.Println("transportMessage error", err)
 				msg.Nack()
 			}
 		})
 		if err != nil {
-			log.Printf("Receive error from [%s]:%v", q.Subscription, err)
+			log.Printf("receive error from [%s]:%v", q.Subscription, err)
 		}
 		if delayBeforeReceive > q.Duration {
 			delayBeforeReceive = q.Duration // do not wait longer than specified by the queue
