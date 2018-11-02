@@ -17,7 +17,7 @@ var (
 
 func main() {
 	flag.Parse()
-	log.Printf("parzello, the pubsub delivery service -- version:%s, vverbose:%v\n", version, *oVerbose)
+	log.Printf("parzello, the pubsub delay service -- version:%s, vverbose:%v\n", version, *oVerbose)
 	config, err := loadConfig()
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
@@ -35,17 +35,17 @@ func main() {
 
 	config.checkTopicsAndSubscriptions(client)
 
-	// schedule parcel listeners
-	service := newDeliveryService(config, client)
+	service := newDelayService(config, client)
 	g := new(sync.WaitGroup)
 	g.Add(1)
 	go func() {
 		log.Printf("ready to accept deliveries on [%s]\n", config.Subscription)
 		if err := service.Accept(ctx); err != nil {
-			log.Println("Accept failed", err)
+			log.Println("accept failed", err)
 		}
 		g.Done()
 	}()
+	// schedule listeners
 	for _, each := range config.Queues {
 		g.Add(1)
 		go func(next Queue) {

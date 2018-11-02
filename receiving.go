@@ -10,27 +10,27 @@ import (
 
 // loopReceiveParcels receives messages during a limited amount of time (queue.Duration)
 // then it enters a sleep to delay receiving the next
-func loopReceiveParcels(client *pubsub.Client, q Queue, service *deliveryServiceImpl) {
+func loopReceiveParcels(client *pubsub.Client, q Queue, service *delayService) {
 	sub := client.Subscription(q.Subscription)
+	if *oVerbose {
+		log.Printf("ready to receive messages from [%s]\n", q.Subscription)
+	}
 	for {
 		ctx, cancel := context.WithCancel(context.Background())
-		if *oVerbose {
-			log.Printf("receiving messages from subscription [%s]\n", q.Subscription)
-		}
 		var delayBeforeReceive time.Duration
 		err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 			// if the message was fetched too soon then cancel this receiving and enter a sleep
 			now := time.Now()
-			after, err := timeFromSecondsString(msg.Attributes[AttrPublishAfter])
+			after, err := timeFromSecondsString(msg.Attributes[attrPublishAfter])
 			if err != nil {
-				log.Printf("invalid publish after attribute:%v\n", err)
+				log.Printf("invalid %s attribute:%v\n", attrPublishAfter, err)
 				return
 			}
 			if after.After(now) {
 				// compute remaining time for this message to stay in queues
 				delayBeforeReceive = after.Sub(now)
 				if *oVerbose {
-					log.Printf("nack message [%s] and cancel receiving to enter delay, [%v] in subscription [%s], remaining [%v]\n", msg.ID, now.Sub(msg.PublishTime), q.Subscription, delayBeforeReceive)
+					log.Printf("reject message [%s] and cancel receiving to enter delay, [%v] in subscription [%s], remaining [%v]\n", msg.ID, now.Sub(msg.PublishTime), q.Subscription, delayBeforeReceive)
 				}
 				msg.Nack()
 				cancel()

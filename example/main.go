@@ -2,49 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log"
-	"math/rand"
-	"os"
-	"time"
-
-	"cloud.google.com/go/pubsub"
-)
-
-// GCP_PROJECT=philemonworks go run main.go
-
-func main() {
-	ctx := context.Background()
-	client, err := pubsub.NewClient(ctx, os.Getenv("GCP_PROJECT"))
-	if err != nil {
-		log.Fatalf("failed to create PubSub client: %v", err)
-	}
-	defer client.Close()
-	dur := time.Duration(rand.Intn(12)) * time.Minute
-	after := time.Now().Add(dur)
-	msg := &pubsub.Message{
-		Data: []byte("parzello"),
-		Attributes: map[string]string{
-			"parzello.destinationTopic": "parzello_sink",
-			"parzello.publishAfter":     fmt.Sprintf("%d", after.Unix()),
-		},
-	}
-	topic := client.Topic("parzello_inbound_topic")
-	r := topic.Publish(ctx, msg)
-	id, err := r.Get(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Published a message to the topic.", id)
-	topic.Stop()
-}
-
-/**
-package main
-
-import (
-	"bufio"
-	"context"
+	"flag"
 	"fmt"
 	"log"
 	"math/rand"
@@ -53,73 +11,78 @@ import (
 	"time"
 
 	"cloud.google.com/go/pubsub"
-	parzello "github.com/emicklei/parzello/v1"
-	"google.golang.org/grpc"
 )
+
+var oDrain = flag.Bool("d", false, "drain destination")
+var oCount = flag.Int("c", 1, "how many message")
 
 // GCP_PROJECT=philemonworks go run main.go
 
 func main() {
-	conn, err := grpc.Dial("localhost:9090", grpc.WithInsecure())
-	if err != nil {
-		log.Fatal("Dial failed:", err)
-	}
-	defer conn.Close()
-
-	go drainDestination()
-
-	client := parzello.NewDeliveryServiceClient(conn)
-
-	for i := 0; i < 100; i++ {
-		d := time.Duration(rand.Intn(12)) * time.Minute
-		//d, _ := time.ParseDuration("1m30s")
-		after := time.Now().Add(d)
-		in := new(parzello.DeliverRequest)
-		in.Envelope = &parzello.Envelope{
-			Payload:          []byte(strconv.Itoa(i)),
-			DestinationTopic: "parzello_destination",
-			PublishAfter:     uint64(after.Unix()),
-		}
-		out, err := client.Deliver(context.Background(), in)
-		if err != nil {
-			log.Fatal("Deliver failed:", err)
-		}
-		log.Printf("%#v", out)
-	}
-	fmt.Print("enter to exit ... ")
-	bufio.NewReader(os.Stdin).ReadString('\n')
-}
-
-func drainDestination() {
+	flag.Parse()
 	ctx := context.Background()
 	client, err := pubsub.NewClient(ctx, os.Getenv("GCP_PROJECT"))
 	if err != nil {
 		log.Fatalf("failed to create PubSub client: %v", err)
 	}
-	sub := client.Subscription("parzello_destination")
-	err = sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
-		log.Printf(`id:%s
------------------
-         parzello.deliveredAt:%s
-                 ps published:%s
-                      payload:%s
-        parzello.publishAfter:%s
-                 actual after:%s
-    parzello.destinationTopic:%s
-                  parzello.ID:%s
-`, msg.ID,
-			msg.Attributes["parzello.deliveredAt"],
-			msg.PublishTime.UTC().String(),
-			string(msg.Data),
-			msg.Attributes["parzello.publishAfter"],
-			time.Now().UTC().String(),
-			msg.Attributes["parzello.destinationTopic"],
-			msg.Attributes["parzello.ID"],
-		)
-		msg.Ack()
-	})
-	if err != nil {
-		log.Printf("Receiving stopped with error %v", err)
+	defer client.Close()
+	topic := client.Topic("parzello_inbound_topic")
+
+	for i := 0; i < *oCount; i++ {
+		dur := time.Duration(1+rand.Intn(10)) * time.Minute
+		after := time.Now().Add(dur)
+		msg := &pubsub.Message{
+			Data: []byte("parzello"),
+			Attributes: map[string]string{
+				"parzello.destinationTopic": "parzello_destination",
+				"parzello.publishAfter":     fmt.Sprintf("%d", after.Unix()),
+			},
+		}
+		r := topic.Publish(ctx, msg)
+		id, err := r.Get(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Println("Published a message to the topic.", id)
+	}
+
+	topic.Stop()
+
+	if *oDrain {
+		drainDestination(client)
 	}
 }
-**/
+
+func drainDestination(client *pubsub.Client) {
+	sub := client.Subscription("parzello_sink")
+	log.Println("draining destination", "parzello_sink")
+	log.Fatal(sub.Receive(context.Background(), func(ctx context.Context, msg *pubsub.Message) {
+		log.Printf(`message-id:%s
+-----------------
+           parzello.entryTime: %s
+                 ps published: %s
+                      payload: %s
+        parzello.publishAfter: %s
+                 actual after: %s
+    parzello.destinationTopic: %s
+   parzello.originalMessageID: %s
+`, msg.ID,
+			timeFromSecondsString(msg.Attributes["parzello.entryTime"]).String(),
+			msg.PublishTime.String(),
+			string(msg.Data),
+			timeFromSecondsString(msg.Attributes["parzello.publishAfter"]).String(),
+			time.Now().String(),
+			msg.Attributes["parzello.destinationTopic"],
+			msg.Attributes["parzello.originalMessageID"],
+		)
+		msg.Ack()
+	}))
+}
+
+func timeFromSecondsString(s string) time.Time {
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return time.Now()
+	}
+	return time.Unix(int64(i), 0)
+}

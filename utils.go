@@ -9,11 +9,11 @@ import (
 )
 
 const (
-	AttrOriginalMessageID = "parzello.originalMessageID"
-	AttrDestinationTopic  = "parzello.destinationTopic"
-	AttrPublishAfter      = "parzello.publishAfter"
-	AttrPublishCount      = "parzello.publishCount"
-	AttrEntryTime         = "parzello.entryTime"
+	attrOriginalMessageID = "parzello.originalMessageID"
+	attrDestinationTopic  = "parzello.destinationTopic"
+	attrPublishAfter      = "parzello.publishAfter"
+	attrPublishCount      = "parzello.publishCount"
+	attrEntryTime         = "parzello.entryTime"
 )
 
 func timeFromSecondsString(s string) (time.Time, error) {
@@ -24,24 +24,20 @@ func timeFromSecondsString(s string) (time.Time, error) {
 	return time.Unix(int64(i), 0), nil
 }
 
-func secondsToTime(usec uint64) time.Time {
-	return time.Unix(int64(usec), 0)
-}
-
 func updatePublishCount(m *pubsub.Message) {
-	pcs, ok := m.Attributes[AttrPublishCount]
+	pcs, ok := m.Attributes[attrPublishCount]
 	if ok {
 		pc, err := strconv.Atoi(pcs)
 		if err != nil {
 			log.Println("failed to parse publishCount, set to 1")
-			m.Attributes[AttrPublishCount] = "1"
+			m.Attributes[attrPublishCount] = "1"
 			return
 		}
-		m.Attributes[AttrPublishCount] = strconv.Itoa(pc + 1)
+		m.Attributes[attrPublishCount] = strconv.Itoa(pc + 1)
 		return
 	}
 	// not set
-	m.Attributes[AttrPublishCount] = "1"
+	m.Attributes[attrPublishCount] = "1"
 }
 
 func timeToSecondsString(t time.Time) string {
