@@ -53,6 +53,7 @@ By passing publisch count metadata to the retry message, a subscriber can inspec
 #### input
 
 |name                       |required   |comment
+|---------------------------|-----------|--------
 |parzello.destinationTopic  |true       |topic to which the message eventually must be published
 |parzello.publishAfter      |false      |Unix time (seconds after 1970) after which the message must be published
 
@@ -60,7 +61,9 @@ By passing publisch count metadata to the retry message, a subscriber can inspec
 #### output
 
 |name                       |comment
+|---------------------------|-------
 |parzello.publishCount      |set to 1 if missing otherwise it is incremented when received by parzello
+|parzello.originalMessageID |ID of message when it was rceived by parzello
 
 
 ### server config
