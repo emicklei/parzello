@@ -13,12 +13,14 @@ and the subscriptions
     gcloud pubsub subscriptions create parzello_five_minutes --topic parzello_five_minutes --topic-project `gcloud config get-value project`
 
 ## start the server
+In the project root
 
     go run *.go
 
 ## running the example
+In the example folder
 
-    cd test && go run *.go
+    go run *.go
 
 ## pull from destination
 
