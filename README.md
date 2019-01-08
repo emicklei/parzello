@@ -30,27 +30,29 @@ Ofcourse this is a fragile design and can lead to problems (what if the created 
 
 ## how does it work?
 
-Instead of the publisher publishing to its destination topic, it publishes the message to a `parzello` PubSub topic specifying the time to delay the publish using meta data.
+Instead of the publisher publishing to its destination topic, it publishes the message to a `parzello` PubSub topic specifying the time to delay the publish using message properties (see details below).
 The `parzello` service will publish that message to one of its intermediary topics. 
 Each such topic has its own listener (pulling messaging) at a time interval.
-In this diagram, 2 such topics exists. One is pulled every 5 minutes. 
-Each message is inspected to see whether it is about time to publish it to the actual destination topic.
-
-For example, a message that needs to be delivered after 8 minutes will be published to `parzello_5_minutes` once and 3 times to `parzello_1_minute `.
-Using a configuration, you can specify which intermediary topics you have created with durations based on your estimations of the actual delay amounts.
+Using a configuration, you must specify which intermediary topics you have created with durations based on your estimations of the actual delay amounts.
 
 ![](./doc/parzello_delay.png)
+
+In this diagram, 2 such topics exists. One is pulled every 5 minutes. 
+Each message is inspected, by looking at the message properties, to see whether it is about time to publish it to the actual destination topic.
+
+For example, a message that needs to be delivered after 8 minutes will be published by `parzello` to `parzello_5_minutes` once and 3 times to `parzello_1_minute `.
+
+![](./doc/parzello_delay_retry.png)
 
 In the next design, `parzello` is used to retry publishing a message at a later moment.
 By passing publisch count metadata to the retry message, a subscriber can inspect this value and behave accordingly (i.e abort on MaxRetries).
 
-![](./doc/parzello_delay_retry.png)
 
 ## usage
 
 ### message attributes
 
-#### input
+#### properties when publishing to `parzello`
 
 |name                       |required   |comment
 |---------------------------|-----------|--------
@@ -58,7 +60,7 @@ By passing publisch count metadata to the retry message, a subscriber can inspec
 |parzello.publishAfter      |false      |Unix time (seconds after 1970) after which the message must be published
 
 
-#### output
+#### properties on a message received through `parzello`
 
 |name                       |comment
 |---------------------------|-------
@@ -68,7 +70,7 @@ By passing publisch count metadata to the retry message, a subscriber can inspec
 
 ### server config
 
-The `parzello` server configuration list one or more queues (intermediate topic+subscriptions).
+The `parzello` server configuration (YAML) lists one or more queues (intermediate topic+subscriptions).
 This example show 2 such queues. 
 The topics and subscriptions must be created upfront in the project `YOUR-PROJECT-ID`.
 A duration string is a possibly signed sequence of decimal numbers, each with optional fraction and a unit suffix, such as "60s", "1.5h" or "2h45m". Valid time units are "ms", "s", "m", "h".
