@@ -79,11 +79,11 @@ A duration string is a possibly signed sequence of decimal numbers, each with op
     subscription: parzello_inbound
     queues:
     - topic: parzello_minute
-    subscription: parzello_minute
-    duration: 1m
+      subscription: parzello_minute
+      duration: 1m
     - topic: parzello_five_minutes
-    subscription: parzello_five_minutes
-    duration: 5m
+      subscription: parzello_five_minutes
+      duration: 5m
 
 ## build
 
@@ -98,4 +98,4 @@ A duration string is a possibly signed sequence of decimal numbers, each with op
 
 ## run development
 
-    go run *.go -v
+    make run
