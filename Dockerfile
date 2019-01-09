@@ -7,7 +7,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -ldflags "-X main.version=$version" .
 FROM scratch
 COPY --from=0 /go/src/github.com/emicklei/parcello .
 
-# gRPC port
-EXPOSE 9090
+# HTTP port
+EXPOSE 8080
 
 ENTRYPOINT ["/parcello"]
