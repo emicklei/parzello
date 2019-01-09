@@ -15,43 +15,22 @@
 
 package stats
 
-// Int64Measure is a measure of type int64.
+// Int64Measure is a measure for int64 values.
 type Int64Measure struct {
-	measure
-}
-
-func (m *Int64Measure) subscribe() {
-	m.measure.subscribe()
-}
-
-func (m *Int64Measure) subscribed() bool {
-	return m.measure.subscribed()
+	*measureDescriptor
 }
 
 // M creates a new int64 measurement.
 // Use Record to record measurements.
 func (m *Int64Measure) M(v int64) Measurement {
-	if !m.subscribed() {
-		return Measurement{}
-	}
-	return Measurement{m: m, v: float64(v)}
+	return Measurement{m: m.measureDescriptor, v: float64(v)}
 }
 
-// Int64 creates a new measure of type Int64Measure. It returns an
-// error if a measure with the same name already exists.
-func Int64(name, description, unit string) (*Int64Measure, error) {
-	if err := checkName(name); err != nil {
-		return nil, err
-	}
-	m := &Int64Measure{
-		measure: measure{
-			name:        name,
-			description: description,
-			unit:        unit,
-		},
-	}
-	if _, err := register(m); err != nil {
-		return nil, err
-	}
-	return m, nil
+// Int64 creates a new measure for int64 values.
+//
+// See the documentation for interface Measure for more guidance on the
+// parameters of this function.
+func Int64(name, description, unit string) *Int64Measure {
+	mi := registerMeasureHandle(name, description, unit)
+	return &Int64Measure{mi}
 }

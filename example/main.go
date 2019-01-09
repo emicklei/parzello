@@ -36,6 +36,7 @@ func main() {
 			Attributes: map[string]string{
 				"parzello.destinationTopic": "parzello_destination",
 				"parzello.publishAfter":     fmt.Sprintf("%d", after.Unix()),
+				"X-Cloud-Debug":             "parzello-example",
 			},
 		}
 		r := topic.Publish(ctx, msg)
@@ -43,7 +44,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		log.Println("Published a message to the topic.", id)
+		log.Printf("Published a message [%s] with after [%v] to topic [%s]", id, after, "parzello_inbound_topic")
 	}
 
 	topic.Stop()
@@ -54,8 +55,8 @@ func main() {
 }
 
 func drainDestination(client *pubsub.Client) {
-	sub := client.Subscription("parzello_sink")
-	log.Println("draining destination", "parzello_sink")
+	sub := client.Subscription("parzello_destination")
+	log.Println("draining destination", "parzello_destination")
 	log.Fatal(sub.Receive(context.Background(), func(ctx context.Context, msg *pubsub.Message) {
 		log.Printf(`message-id:%s
 -----------------
@@ -67,11 +68,11 @@ func drainDestination(client *pubsub.Client) {
     parzello.destinationTopic: %s
    parzello.originalMessageID: %s
 `, msg.ID,
-			timeFromSecondsString(msg.Attributes["parzello.entryTime"]).String(),
-			msg.PublishTime.String(),
+			timeFromSecondsString(msg.Attributes["parzello.entryTime"]).UTC().String(),
+			msg.PublishTime.UTC().String(),
 			string(msg.Data),
-			timeFromSecondsString(msg.Attributes["parzello.publishAfter"]).String(),
-			time.Now().String(),
+			timeFromSecondsString(msg.Attributes["parzello.publishAfter"]).UTC().String(),
+			time.Now().UTC().String(),
 			msg.Attributes["parzello.destinationTopic"],
 			msg.Attributes["parzello.originalMessageID"],
 		)

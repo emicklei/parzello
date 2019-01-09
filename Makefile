@@ -1,7 +1,7 @@
 .PHONY: run dock drun
 
 run:
-	go run *.go -v
+	go build && ./parzello -v
 
 dock:
 	docker build -t parzello .

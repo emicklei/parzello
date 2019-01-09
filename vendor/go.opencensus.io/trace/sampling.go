@@ -20,24 +20,6 @@ import (
 
 const defaultSamplingProbability = 1e-4
 
-func init() {
-	defaultSampler = ProbabilitySampler(defaultSamplingProbability)
-}
-
-func newDefaultSampler() Sampler {
-	return ProbabilitySampler(defaultSamplingProbability)
-}
-
-// SetDefaultSampler sets the default sampler used when creating new spans.
-func SetDefaultSampler(sampler Sampler) {
-	if sampler == nil {
-		sampler = newDefaultSampler()
-	}
-	mu.Lock()
-	defaultSampler = sampler
-	mu.Unlock()
-}
-
 // Sampler decides whether a trace should be sampled and exported.
 type Sampler func(SamplingParameters) SamplingDecision
 
@@ -76,6 +58,9 @@ func ProbabilitySampler(fraction float64) Sampler {
 }
 
 // AlwaysSample returns a Sampler that samples every trace.
+// Be careful about using this sampler in a production application with
+// significant traffic: a new trace will be started and exported for every
+// request.
 func AlwaysSample() Sampler {
 	return func(p SamplingParameters) SamplingDecision {
 		return SamplingDecision{Sample: true}

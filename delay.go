@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -26,13 +25,14 @@ func newDelayService(con Config, c *pubsub.Client) *delayService {
 	}
 }
 
+// Accept will start receiving from the public subscription.
 func (d *delayService) Accept(ctx context.Context) error {
 	sub := d.client.Subscription(d.config.Subscription)
 	return sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		// validate after
 		after, err := timeFromSecondsString(msg.Attributes[attrPublishAfter])
 		if err != nil {
-			log.Printf("[WARN] missing or invalid attribute %s=%s error:%v\n",
+			logWarn(msg, "passthrough message because of missing or invalid attribute %s=%s error:%v\n",
 				attrPublishAfter, msg.Attributes[attrPublishAfter], err)
 			d.publishToDestination(ctx, msg)
 			msg.Ack()
@@ -41,18 +41,19 @@ func (d *delayService) Accept(ctx context.Context) error {
 		// validate destination
 		destination := msg.Attributes[attrDestinationTopic]
 		if len(destination) == 0 {
-			log.Printf("[ERROR] missing attribute %s=%s", attrDestinationTopic, destination)
+			logError(msg, "unable to handle message because of missing attribute %s=%s",
+				attrDestinationTopic, destination)
 			msg.Nack()
 			return
 		}
-		if *oVerbose {
-			log.Printf("accept message [%s] from subscription [%s] to be delivered to [%s] on or after [%v]\n",
-				msg.ID, d.config.Subscription, destination, after)
+		if isVerbose(msg) {
+			logDebug(msg, "accepted message from subscription [%s] to be delivered to [%s] on or after [%v]",
+				d.config.Subscription, destination, after)
 		}
 		msg.Attributes[attrOriginalMessageID] = msg.ID
 		msg.Attributes[attrEntryTime] = timeToSecondsString(msg.PublishTime)
 		if err := d.transportMessage(ctx, msg); err != nil {
-			log.Printf("unable to transport message:%v\n", err)
+			logError(msg, "message cannot be transported with error:%v", err)
 			msg.Nack()
 			return
 		}
@@ -67,12 +68,10 @@ func (d *delayService) transportMessage(ctx context.Context, m *pubsub.Message) 
 	if err != nil {
 		return fmt.Errorf("invalid publish after attribute:%v", err)
 	}
-
-	// see if destination is arrived
+	// see if it time to publish to the destination
 	if after.Before(now) {
 		return d.publishToDestination(ctx, m)
 	}
-
 	wait := after.Sub(now)
 	// pick the queue with the largest duration and within wait
 	// at least one exists, has been checked at startup
@@ -88,8 +87,8 @@ func (d *delayService) transportMessage(ctx context.Context, m *pubsub.Message) 
 		Data:       m.Data,
 		Attributes: m.Attributes,
 	}
-	if *oVerbose {
-		log.Printf("publish new message [%s] to [%s]", msg.Attributes[attrOriginalMessageID], nextQueue.Topic)
+	if isVerbose(msg) {
+		logDebug(msg, "publish message [%s] to [%s]", msg.Attributes[attrOriginalMessageID], nextQueue.Topic)
 	}
 	d.topicNamed(nextQueue.Topic).Publish(ctx, msg)
 	return nil
@@ -97,18 +96,22 @@ func (d *delayService) transportMessage(ctx context.Context, m *pubsub.Message) 
 
 // publishToDestination publishes the message to the destination topic.
 func (d *delayService) publishToDestination(ctx context.Context, m *pubsub.Message) error {
+	// on Accept, the destination has been validated
+	destination := m.Attributes[attrDestinationTopic]
 	msg := &pubsub.Message{
 		Data:       m.Data,
 		Attributes: m.Attributes,
 	}
 	updatePublishCount(msg)
-	if *oVerbose {
-		log.Printf("publish message [%s] to [%s]", msg.Attributes[attrOriginalMessageID], msg.Attributes[attrDestinationTopic])
+	if isVerbose(msg) {
+		msg.ID = msg.Attributes[attrOriginalMessageID]
+		logDebug(msg, "publish message to [%s]", destination)
 	}
-	d.topicNamed(msg.Attributes[attrDestinationTopic]).Publish(ctx, msg)
+	d.topicNamed(destination).Publish(ctx, msg)
 	return nil
 }
 
+// topicNamed returns a (cached) pubsub.Topic
 func (d *delayService) topicNamed(name string) *pubsub.Topic {
 	d.topicsMutex.RLock()
 	t, ok := d.topics[name]

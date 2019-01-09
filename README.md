@@ -58,7 +58,7 @@ By passing publisch count metadata to the retry message, a subscriber can inspec
 |---------------------------|-----------|--------
 |parzello.destinationTopic  |true       |topic to which the message eventually must be published
 |parzello.publishAfter      |false      |Unix time (seconds after 1970) after which the message must be published
-
+|X-Cloud-Debug              |false      |if set then for this message debug logging is produced
 
 #### properties on a message received through `parzello`
 

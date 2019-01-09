@@ -14,6 +14,8 @@ const (
 	attrPublishAfter      = "parzello.publishAfter"
 	attrPublishCount      = "parzello.publishCount"
 	attrEntryTime         = "parzello.entryTime"
+	// if this property is available in the message attributes then all operations for this message are logged in DEBUG level.
+	attrCloudDebug = "X-Cloud-Debug"
 )
 
 func timeFromSecondsString(s string) (time.Time, error) {
@@ -29,7 +31,7 @@ func updatePublishCount(m *pubsub.Message) {
 	if ok {
 		pc, err := strconv.Atoi(pcs)
 		if err != nil {
-			log.Println("failed to parse publishCount, set to 1")
+			log.Println("warning: failed to parse publishCount, set to 1")
 			m.Attributes[attrPublishCount] = "1"
 			return
 		}

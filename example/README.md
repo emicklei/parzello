@@ -11,16 +11,17 @@ and the subscriptions
     gcloud pubsub subscriptions create parzello_destination  --topic parzello_destination --topic-project `gcloud config get-value project`
     gcloud pubsub subscriptions create parzello_minute       --topic parzello_minute      --topic-project `gcloud config get-value project`
     gcloud pubsub subscriptions create parzello_five_minutes --topic parzello_five_minutes --topic-project `gcloud config get-value project`
+    gcloud pubsub subscriptions create parzello_inbound --topic parzello_inbound_topic --topic-project `gcloud config get-value project`
 
 ## start the server
 In the project root
 
-    go run *.go
+    make run
 
 ## running the example
 In the example folder
 
-    go run *.go
+    GCP=`gcloud config get-value project` go run *.go
 
 ## pull from destination
 

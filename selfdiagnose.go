@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 
 	selfdiagnose "github.com/emicklei/go-selfdiagnose"
@@ -15,8 +14,9 @@ func addSelfdiagnose() {
 	selfdiagnose.Register(task.ReportHostname{})
 	selfdiagnose.Register(task.ReportCPU())
 
+	// start a HTTP server
 	webServer := &http.Server{Addr: ":8080"}
-	log.Println("parzello HTTP api is listening on :8080")
-	log.Println("open http://localhost:8080/internal/selfdiagnose.html")
-	log.Fatal(webServer.ListenAndServe())
+	logInfo("HTTP api is listening on :8080")
+	logInfo("open http://localhost:8080/internal/selfdiagnose.html")
+	webServer.ListenAndServe()
 }

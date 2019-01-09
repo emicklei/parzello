@@ -17,6 +17,8 @@ package view
 
 import (
 	"math"
+
+	"go.opencensus.io/exemplar"
 )
 
 // AggregationData represents an aggregated value from a collection.
@@ -24,7 +26,7 @@ import (
 // Mosts users won't directly access aggregration data.
 type AggregationData interface {
 	isAggregationData() bool
-	addSample(v float64)
+	addSample(e *exemplar.Exemplar)
 	clone() AggregationData
 	equal(other AggregationData) bool
 }
@@ -35,21 +37,18 @@ const epsilon = 1e-9
 // A count aggregation processes data and counts the recordings.
 //
 // Most users won't directly access count data.
-type CountData int64
-
-func newCountData(v int64) *CountData {
-	tmp := CountData(v)
-	return &tmp
+type CountData struct {
+	Value int64
 }
 
 func (a *CountData) isAggregationData() bool { return true }
 
-func (a *CountData) addSample(_ float64) {
-	*a = *a + 1
+func (a *CountData) addSample(_ *exemplar.Exemplar) {
+	a.Value = a.Value + 1
 }
 
 func (a *CountData) clone() AggregationData {
-	return newCountData(int64(*a))
+	return &CountData{Value: a.Value}
 }
 
 func (a *CountData) equal(other AggregationData) bool {
@@ -58,28 +57,25 @@ func (a *CountData) equal(other AggregationData) bool {
 		return false
 	}
 
-	return int64(*a) == int64(*a2)
+	return a.Value == a2.Value
 }
 
 // SumData is the aggregated data for the Sum aggregation.
 // A sum aggregation processes data and sums up the recordings.
 //
 // Most users won't directly access sum data.
-type SumData float64
-
-func newSumData(v float64) *SumData {
-	tmp := SumData(v)
-	return &tmp
+type SumData struct {
+	Value float64
 }
 
 func (a *SumData) isAggregationData() bool { return true }
 
-func (a *SumData) addSample(f float64) {
-	*a += SumData(f)
+func (a *SumData) addSample(e *exemplar.Exemplar) {
+	a.Value += e.Value
 }
 
 func (a *SumData) clone() AggregationData {
-	return newSumData(float64(*a))
+	return &SumData{Value: a.Value}
 }
 
 func (a *SumData) equal(other AggregationData) bool {
@@ -87,71 +83,37 @@ func (a *SumData) equal(other AggregationData) bool {
 	if !ok {
 		return false
 	}
-	return math.Pow(float64(*a)-float64(*a2), 2) < epsilon
-}
-
-// MeanData is the aggregated data for the Mean aggregation.
-// A mean aggregation processes data and maintains the mean value.
-//
-// Most users won't directly access mean data.
-type MeanData struct {
-	Count int64   // number of data points aggregated
-	Mean  float64 // mean of all data points
-}
-
-func newMeanData(mean float64, count int64) *MeanData {
-	return &MeanData{
-		Mean:  mean,
-		Count: count,
-	}
-}
-
-// Sum returns the sum of all samples collected.
-func (a *MeanData) Sum() float64 { return a.Mean * float64(a.Count) }
-
-func (a *MeanData) isAggregationData() bool { return true }
-
-func (a *MeanData) addSample(f float64) {
-	a.Count++
-	if a.Count == 1 {
-		a.Mean = f
-		return
-	}
-	a.Mean = a.Mean + (f-a.Mean)/float64(a.Count)
-}
-
-func (a *MeanData) clone() AggregationData {
-	return newMeanData(a.Mean, a.Count)
-}
-
-func (a *MeanData) equal(other AggregationData) bool {
-	a2, ok := other.(*MeanData)
-	if !ok {
-		return false
-	}
-	return a.Count == a2.Count && math.Pow(a.Mean-a2.Mean, 2) < epsilon
+	return math.Pow(a.Value-a2.Value, 2) < epsilon
 }
 
 // DistributionData is the aggregated data for the
 // Distribution aggregation.
 //
 // Most users won't directly access distribution data.
+//
+// For a distribution with N bounds, the associated DistributionData will have
+// N+1 buckets.
 type DistributionData struct {
-	Count           int64     // number of data points aggregated
-	Min             float64   // minimum value in the distribution
-	Max             float64   // max value in the distribution
-	Mean            float64   // mean of the distribution
-	SumOfSquaredDev float64   // sum of the squared deviation from the mean
-	CountPerBucket  []int64   // number of occurrences per bucket
-	bounds          []float64 // histogram distribution of the values
+	Count           int64   // number of data points aggregated
+	Min             float64 // minimum value in the distribution
+	Max             float64 // max value in the distribution
+	Mean            float64 // mean of the distribution
+	SumOfSquaredDev float64 // sum of the squared deviation from the mean
+	CountPerBucket  []int64 // number of occurrences per bucket
+	// ExemplarsPerBucket is slice the same length as CountPerBucket containing
+	// an exemplar for the associated bucket, or nil.
+	ExemplarsPerBucket []*exemplar.Exemplar
+	bounds             []float64 // histogram distribution of the values
 }
 
 func newDistributionData(bounds []float64) *DistributionData {
+	bucketCount := len(bounds) + 1
 	return &DistributionData{
-		CountPerBucket: make([]int64, len(bounds)+1),
-		bounds:         bounds,
-		Min:            math.MaxFloat64,
-		Max:            math.SmallestNonzeroFloat64,
+		CountPerBucket:     make([]int64, bucketCount),
+		ExemplarsPerBucket: make([]*exemplar.Exemplar, bucketCount),
+		bounds:             bounds,
+		Min:                math.MaxFloat64,
+		Max:                math.SmallestNonzeroFloat64,
 	}
 }
 
@@ -167,7 +129,8 @@ func (a *DistributionData) variance() float64 {
 
 func (a *DistributionData) isAggregationData() bool { return true }
 
-func (a *DistributionData) addSample(f float64) {
+func (a *DistributionData) addSample(e *exemplar.Exemplar) {
+	f := e.Value
 	if f < a.Min {
 		a.Min = f
 	}
@@ -175,7 +138,7 @@ func (a *DistributionData) addSample(f float64) {
 		a.Max = f
 	}
 	a.Count++
-	a.incrementBucketCount(f)
+	a.addToBucket(e)
 
 	if a.Count == 1 {
 		a.Mean = f
@@ -187,26 +150,43 @@ func (a *DistributionData) addSample(f float64) {
 	a.SumOfSquaredDev = a.SumOfSquaredDev + (f-oldMean)*(f-a.Mean)
 }
 
-func (a *DistributionData) incrementBucketCount(f float64) {
-	if len(a.bounds) == 0 {
-		a.CountPerBucket[0]++
-		return
-	}
-
+func (a *DistributionData) addToBucket(e *exemplar.Exemplar) {
+	var count *int64
+	var ex **exemplar.Exemplar
 	for i, b := range a.bounds {
-		if f < b {
-			a.CountPerBucket[i]++
-			return
+		if e.Value < b {
+			count = &a.CountPerBucket[i]
+			ex = &a.ExemplarsPerBucket[i]
+			break
 		}
 	}
-	a.CountPerBucket[len(a.bounds)]++
+	if count == nil {
+		count = &a.CountPerBucket[len(a.bounds)]
+		ex = &a.ExemplarsPerBucket[len(a.bounds)]
+	}
+	*count++
+	*ex = maybeRetainExemplar(*ex, e)
+}
+
+func maybeRetainExemplar(old, cur *exemplar.Exemplar) *exemplar.Exemplar {
+	if old == nil {
+		return cur
+	}
+
+	// Heuristic to pick the "better" exemplar: first keep the one with a
+	// sampled trace attachment, if neither have a trace attachment, pick the
+	// one with more attachments.
+	_, haveTraceID := cur.Attachments[exemplar.KeyTraceID]
+	if haveTraceID || len(cur.Attachments) >= len(old.Attachments) {
+		return cur
+	}
+	return old
 }
 
 func (a *DistributionData) clone() AggregationData {
-	counts := make([]int64, len(a.CountPerBucket))
-	copy(counts, a.CountPerBucket)
 	c := *a
-	c.CountPerBucket = counts
+	c.CountPerBucket = append([]int64(nil), a.CountPerBucket...)
+	c.ExemplarsPerBucket = append([]*exemplar.Exemplar(nil), a.ExemplarsPerBucket...)
 	return &c
 }
 
@@ -227,4 +207,29 @@ func (a *DistributionData) equal(other AggregationData) bool {
 		}
 	}
 	return a.Count == a2.Count && a.Min == a2.Min && a.Max == a2.Max && math.Pow(a.Mean-a2.Mean, 2) < epsilon && math.Pow(a.variance()-a2.variance(), 2) < epsilon
+}
+
+// LastValueData returns the last value recorded for LastValue aggregation.
+type LastValueData struct {
+	Value float64
+}
+
+func (l *LastValueData) isAggregationData() bool {
+	return true
+}
+
+func (l *LastValueData) addSample(e *exemplar.Exemplar) {
+	l.Value = e.Value
+}
+
+func (l *LastValueData) clone() AggregationData {
+	return &LastValueData{l.Value}
+}
+
+func (l *LastValueData) equal(other AggregationData) bool {
+	a2, ok := other.(*LastValueData)
+	if !ok {
+		return false
+	}
+	return l.Value == a2.Value
 }

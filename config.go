@@ -51,11 +51,11 @@ func (c Config) checkTopicsAndSubscriptions(client *pubsub.Client) {
 		if err != nil {
 			log.Fatalf("failed to check existence: %v", err)
 		}
-		log.Printf("check exists topic [%s]\n", each.Topic)
+		logInfo("check exists topic [%s]", each.Topic)
 		if !ok {
 			log.Fatalf("topic [%s] does not exist: %v", each.Topic, err)
 		}
-		log.Printf("check exists subscription [%s]\n", each.Subscription)
+		logInfo("check exists subscription [%s]", each.Subscription)
 		ok, err = client.Subscription(each.Subscription).Exists(ctx)
 		if err != nil {
 			log.Fatalf("failed to check existence: %v", err)
@@ -81,6 +81,6 @@ func loadConfig() (config Config, err error) {
 	}
 	// sort by duration ascending; shortest first
 	sort.Slice(config.Queues, func(i, j int) bool { return config.Queues[i].Duration < config.Queues[j].Duration })
-	log.Println("loaded configuration from", *oConfig)
+	logInfo("loaded configuration from %v", *oConfig)
 	return config, err
 }

@@ -12,12 +12,12 @@ import (
 var (
 	oVerbose = flag.Bool("v", false, "verbose logging")
 	oConfig  = flag.String("c", "parzello.yaml", "location of configuration")
-	version  = "0.3"
+	version  = "0.4"
 )
 
 func main() {
 	flag.Parse()
-	log.Printf("parzello, the pubsub delay service -- version:%s, vverbose:%v\n", version, *oVerbose)
+	logInfo("parzello, the pubsub delay service -- version:%s, verbose:%v", version, *oVerbose)
 	config, err := loadConfig()
 	if err != nil {
 		log.Fatalf("failed to load config: %v", err)
@@ -39,7 +39,7 @@ func main() {
 	g := new(sync.WaitGroup)
 	g.Add(1)
 	go func() {
-		log.Printf("ready to accept deliveries on [%s]\n", config.Subscription)
+		logInfo("ready to accept messages from subscription [%s]", config.Subscription)
 		if err := service.Accept(ctx); err != nil {
 			log.Println("accept failed", err)
 		}

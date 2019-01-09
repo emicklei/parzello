@@ -24,27 +24,6 @@
 #   go-tests = true
 #   unused-packages = true
 
-
-[[constraint]]
-  name = "cloud.google.com/go"
-  version = "0.20.0"
-
-[[constraint]]
-  name = "github.com/golang/protobuf"
-  version = "1.0.0"
-
-[[constraint]]
-  branch = "master"
-  name = "golang.org/x/net"
-
-[[constraint]]
-  name = "google.golang.org/grpc"
-  version = "1.11.2"
-
-[[override]]
-  name = "go.opencensus.io"
-  version = "v0.6.0"  
-
 [prune]
   go-tests = true
   unused-packages = true
