@@ -103,7 +103,8 @@ func (d *delayService) transportMessage(ctx context.Context, m *pubsub.Message) 
 		return nil // already stored
 	}
 	k := newDatastoreKey(msg)
-	_, err = d.datastoreClient.Put(ctx, k, newPubSubMessageRecord(msg))
+	// use a different context
+	_, err = d.datastoreClient.Put(context.Background(), k, newPubSubMessageRecord(msg))
 	if isVerbose(msg) {
 		logDebug(msg, "add mirror copy to datastore with key [%s]", k.Name)
 	}
@@ -130,7 +131,8 @@ func (d *delayService) publishToDestination(ctx context.Context, m *pubsub.Messa
 	d.topicNamed(destination).Publish(ctx, msg)
 	// if in DataStore then delete it
 	if key := datastoreKey(msg); key != nil {
-		if err := d.datastoreClient.Delete(ctx, key); err != nil {
+		// use a different context
+		if err := d.datastoreClient.Delete(context.Background(), key); err != nil {
 			logWarn(msg, "unable to delete datastore entry because [%v]", err)
 		} else {
 			if isVerbose(msg) {
