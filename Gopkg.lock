@@ -5,15 +5,19 @@
   name = "cloud.google.com/go"
   packages = [
     "compute/metadata",
+    "datastore",
     "iam",
+    "internal",
+    "internal/fields",
     "internal/optional",
+    "internal/trace",
     "internal/version",
     "pubsub",
     "pubsub/apiv1",
     "pubsub/internal/distribution"
   ]
-  revision = "0ebda48a7f143b1cce9eb37a8c1106ac762a3430"
-  version = "v0.34.0"
+  revision = "28a4bc8c44b3acbcc482cff0cdf7de29a4688b61"
+  version = "v0.35.1"
 
 [[projects]]
   name = "github.com/emicklei/go-selfdiagnose"
@@ -39,17 +43,22 @@
     "ptypes/any",
     "ptypes/duration",
     "ptypes/empty",
-    "ptypes/timestamp"
+    "ptypes/struct",
+    "ptypes/timestamp",
+    "ptypes/wrappers"
   ]
   revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
   version = "v1.2.0"
 
 [[projects]]
+  name = "github.com/google/uuid"
+  packages = ["."]
+  revision = "9b3b1e0f5f99ae461456d768e7d301a7acdaa2d8"
+  version = "v1.1.0"
+
+[[projects]]
   name = "github.com/googleapis/gax-go"
-  packages = [
-    ".",
-    "v2"
-  ]
+  packages = ["v2"]
   revision = "c8a15bac9b9fe955bd9f900272f9a306465d28cf"
   version = "v2.0.3"
 
@@ -72,8 +81,8 @@
     "trace/propagation",
     "trace/tracestate"
   ]
-  revision = "b7bf3cdb64150a8c8c53b769fdeb2ba581bd4d4b"
-  version = "v0.18.0"
+  revision = "2b5032d79456124f42db6b7eb19ac6c155449dc2"
+  version = "v0.19.0"
 
 [[projects]]
   branch = "master"
@@ -88,7 +97,7 @@
     "internal/timeseries",
     "trace"
   ]
-  revision = "1e06a53dbb7e2ed46e91183f219db23c6943c532"
+  revision = "d26f9f9a57f3fab6a695bec0d84433c2c50f8bbf"
 
 [[projects]]
   branch = "master"
@@ -100,7 +109,7 @@
     "jws",
     "jwt"
   ]
-  revision = "d668ce993890a79bda886613ee587a69dd5da7a6"
+  revision = "5dab4167f31cbd76b407f1486c86b40748bc5073"
 
 [[projects]]
   branch = "master"
@@ -115,7 +124,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "7fbe1cd0fcc20051e1fcb87fbabec4a1bacaaeba"
+  revision = "b90733256f2e882e81d52f9126de08df5615afd9"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -141,6 +150,8 @@
 [[projects]]
   name = "google.golang.org/api"
   packages = [
+    "googleapi",
+    "googleapi/internal/uritemplates",
     "googleapi/transport",
     "internal",
     "iterator",
@@ -178,12 +189,15 @@
   name = "google.golang.org/genproto"
   packages = [
     "googleapis/api/annotations",
+    "googleapis/datastore/v1",
     "googleapis/iam/v1",
     "googleapis/pubsub/v1",
+    "googleapis/rpc/code",
     "googleapis/rpc/status",
+    "googleapis/type/latlng",
     "protobuf/field_mask"
   ]
-  revision = "ae2f86662275e140f395167f1dab7081a5bd5fa8"
+  revision = "8819c946db4494a2259bf100a377f51aa585d893"
 
 [[projects]]
   name = "google.golang.org/grpc"
@@ -221,12 +235,12 @@
     "status",
     "tap"
   ]
-  revision = "df014850f6dee74ba2fc94874043a9f3f75fbfd8"
-  version = "v1.17.0"
+  revision = "a02b0774206b209466313a0b525d2c738fe407eb"
+  version = "v1.18.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "14bc30ad2dd69e35440389191ca2d36b00a3f28c9f8bef18865d3f62f841f0e8"
+  inputs-digest = "65d00ad5f5b528b62896a110cf7bfd6bcf75e43aa4a69a29001cf2d8663426e4"
   solver-name = "gps-cdcl"
   solver-version = 1

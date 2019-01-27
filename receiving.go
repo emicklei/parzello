@@ -29,7 +29,7 @@ func loopReceiveParcels(client *pubsub.Client, q Queue, service *delayService) {
 				// compute remaining time for this message to stay in the subscription
 				delayBeforeReceive = after.Sub(now)
 				if isVerbose(msg) {
-					logDebug(msg, "message is rejected and receive is cancelled to enter delay [%v] in subscription [%s]",
+					logDebug(msg, "receive is cancelled to enter delay [%v] in subscription [%s]",
 						delayBeforeReceive, q.Subscription)
 				}
 				msg.Nack()

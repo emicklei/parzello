@@ -18,6 +18,28 @@ const (
 	attrCloudDebug = "X-Cloud-Debug"
 )
 
+func publishAfter(m *pubsub.Message) time.Time {
+	t, _ := timeFromSecondsString(m.Attributes[attrPublishAfter])
+	return t
+}
+
+func publishCount(m *pubsub.Message) int {
+	pcs, ok := m.Attributes[attrPublishCount]
+	if ok {
+		pc, err := strconv.Atoi(pcs)
+		if err != nil {
+			return 1
+		}
+		return pc
+	}
+	return 1
+}
+
+func entryTime(m *pubsub.Message) time.Time {
+	t, _ := timeFromSecondsString(m.Attributes[attrEntryTime])
+	return t
+}
+
 func timeFromSecondsString(s string) (time.Time, error) {
 	i, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
@@ -44,4 +66,11 @@ func updatePublishCount(m *pubsub.Message) {
 
 func timeToSecondsString(t time.Time) string {
 	return strconv.FormatInt(t.Unix(), 10)
+}
+
+func needsDatastoreMirror(m *pubsub.Message) bool {
+	if m.Attributes == nil {
+		return false
+	}
+	return m.Attributes[attrDataStoreMirror] == "true"
 }

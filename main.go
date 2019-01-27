@@ -6,13 +6,14 @@ import (
 	"log"
 	"sync"
 
+	"cloud.google.com/go/datastore"
 	"cloud.google.com/go/pubsub"
 )
 
 var (
 	oVerbose = flag.Bool("v", false, "verbose logging")
 	oConfig  = flag.String("c", "parzello.yaml", "location of configuration")
-	version  = "0.4"
+	version  = "0.5"
 )
 
 func main() {
@@ -28,14 +29,18 @@ func main() {
 		log.Fatal("missing project in config")
 	}
 	ctx := context.Background()
-	client, err := pubsub.NewClient(ctx, config.Project)
+	pubsubClient, err := pubsub.NewClient(ctx, config.Project)
 	if err != nil {
 		log.Fatalf("failed to create PubSub client: %v", err)
 	}
+	datastoreClient, err := datastore.NewClient(ctx, config.Project)
+	if err != nil {
+		log.Fatalf("failed to create Datastore client: %v", err)
+	}
+	config.checkDataStoreAccessible(datastoreClient)
+	config.checkTopicsAndSubscriptions(pubsubClient)
 
-	config.checkTopicsAndSubscriptions(client)
-
-	service := newDelayService(config, client)
+	service := newDelayService(config, pubsubClient, datastoreClient)
 	g := new(sync.WaitGroup)
 	g.Add(1)
 	go func() {
@@ -49,7 +54,7 @@ func main() {
 	for _, each := range config.Queues {
 		g.Add(1)
 		go func(next Queue) {
-			loopReceiveParcels(client, next, service)
+			loopReceiveParcels(pubsubClient, next, service)
 			g.Done()
 		}(each)
 	}

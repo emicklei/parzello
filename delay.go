@@ -5,29 +5,32 @@ import (
 	"sync"
 	"time"
 
+	"cloud.google.com/go/datastore"
 	"cloud.google.com/go/pubsub"
 	context "golang.org/x/net/context"
 )
 
 type delayService struct {
-	client      *pubsub.Client
-	config      Config
-	topicsMutex *sync.RWMutex
-	topics      map[string]*pubsub.Topic
+	pubsubClient    *pubsub.Client
+	datastoreClient *datastore.Client
+	config          Config
+	topicsMutex     *sync.RWMutex
+	topics          map[string]*pubsub.Topic
 }
 
-func newDelayService(con Config, c *pubsub.Client) *delayService {
+func newDelayService(con Config, c *pubsub.Client, d *datastore.Client) *delayService {
 	return &delayService{
-		client:      c,
-		config:      con,
-		topicsMutex: new(sync.RWMutex),
-		topics:      map[string]*pubsub.Topic{},
+		pubsubClient:    c,
+		datastoreClient: d,
+		config:          con,
+		topicsMutex:     new(sync.RWMutex),
+		topics:          map[string]*pubsub.Topic{},
 	}
 }
 
 // Accept will start receiving from the public subscription.
 func (d *delayService) Accept(ctx context.Context) error {
-	sub := d.client.Subscription(d.config.Subscription)
+	sub := d.pubsubClient.Subscription(d.config.Subscription)
 	return sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		// validate after
 		after, err := timeFromSecondsString(msg.Attributes[attrPublishAfter])
@@ -91,10 +94,27 @@ func (d *delayService) transportMessage(ctx context.Context, m *pubsub.Message) 
 		logDebug(msg, "publish message [%s] to [%s]", msg.Attributes[attrOriginalMessageID], nextQueue.Topic)
 	}
 	d.topicNamed(nextQueue.Topic).Publish(ctx, msg)
+	// if the message wants to be mirrored in DataStore then save it
+	// unless it was already saved to DataStore upon entry
+	if !needsDatastoreMirror(msg) {
+		return nil // no need to mirror
+	}
+	if datastoreKey(msg) != nil {
+		return nil // already stored
+	}
+	k := newDatastoreKey(msg)
+	_, err = d.datastoreClient.Put(ctx, k, newPubSubMessageRecord(msg))
+	if isVerbose(msg) {
+		logDebug(msg, "add mirror copy to datastore with key [%s]", k.Name)
+	}
+	if err != nil {
+		logWarn(msg, "unable to mirror message because [%v]", err)
+	}
 	return nil
 }
 
 // publishToDestination publishes the message to the destination topic.
+// if the message was stored in DataStore then remove it.
 func (d *delayService) publishToDestination(ctx context.Context, m *pubsub.Message) error {
 	// on Accept, the destination has been validated
 	destination := m.Attributes[attrDestinationTopic]
@@ -108,6 +128,16 @@ func (d *delayService) publishToDestination(ctx context.Context, m *pubsub.Messa
 		logDebug(msg, "publish message to [%s]", destination)
 	}
 	d.topicNamed(destination).Publish(ctx, msg)
+	// if in DataStore then delete it
+	if key := datastoreKey(msg); key != nil {
+		if err := d.datastoreClient.Delete(ctx, key); err != nil {
+			logWarn(msg, "unable to delete datastore entry because [%v]", err)
+		} else {
+			if isVerbose(msg) {
+				logDebug(msg, "deleted message [%s] from datastore", key.Name)
+			}
+		}
+	}
 	return nil
 }
 
@@ -120,7 +150,7 @@ func (d *delayService) topicNamed(name string) *pubsub.Topic {
 		return t
 	}
 	d.topicsMutex.Lock()
-	t = d.client.Topic(name)
+	t = d.pubsubClient.Topic(name)
 	d.topics[name] = t
 	d.topicsMutex.Unlock()
 	return t

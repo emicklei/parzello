@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"cloud.google.com/go/datastore"
 	"cloud.google.com/go/pubsub"
 	"github.com/go-yaml/yaml"
 )
@@ -64,6 +65,17 @@ func (c Config) checkTopicsAndSubscriptions(client *pubsub.Client) {
 			log.Fatalf("subscription [%s] does not exist", each.Subscription)
 		}
 	}
+}
+
+func (c Config) checkDataStoreAccessible(datastoreClient *datastore.Client) {
+	countQuery := datastore.NewQuery("__Stat_Ns_Kind__")
+	countQuery.Namespace("parzello")
+	countQuery.Filter("kind_name =", kindDatastore)
+	n, err := datastoreClient.Count(context.Background(), countQuery)
+	if err != nil {
+		log.Fatalf("count on parzello.%s failed [%v]", kindDatastore, err)
+	}
+	logInfo("[%d] parzello.%s pending", n, kindDatastore)
 }
 
 func loadConfig() (config Config, err error) {
