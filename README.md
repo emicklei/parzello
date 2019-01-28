@@ -71,8 +71,6 @@ By passing publisch count metadata to the retry message, a subscriber can inspec
 |name                       |comment
 |---------------------------|-------
 |parzello.publishCount      |set to 1 if missing otherwise it is incremented when received by parzello
-|parzello.originalMessageID |ID of message when it was rceived by parzello
-
 
 ### server config
 
@@ -91,11 +89,11 @@ A duration string is a possibly signed sequence of decimal numbers, each with op
       subscription: parzello_five_minutes
       duration: 5m
 
-## build
+## docker build
 
-    docker build -t parzello .
+    cd docker && docker build -t parzello .
 
-## run
+## docker run
 
     docker run -it \
         -v ~/.config/gcloud/:/gcloud \

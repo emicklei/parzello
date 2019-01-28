@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/emicklei/go-selfdiagnose"
+	selfdiagnose "github.com/emicklei/go-selfdiagnose"
 )
 
 // Reports the variables and values the system is using
 type ReportVariables struct {
+	Description string
 	VariableMap map[string]interface{}
 }
 
@@ -28,5 +29,8 @@ func (r ReportVariables) Run(ctx *selfdiagnose.Context, result *selfdiagnose.Res
 }
 
 func (r ReportVariables) Comment() string {
+	if len(r.Description) != 0 {
+		return r.Description
+	}
 	return "Configuration"
 }

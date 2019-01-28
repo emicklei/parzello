@@ -53,7 +53,6 @@ func (d *delayService) Accept(ctx context.Context) error {
 			logDebug(msg, "accepted message from subscription [%s] to be delivered to [%s] on or after [%v]",
 				d.config.Subscription, destination, after)
 		}
-		msg.Attributes[attrOriginalMessageID] = msg.ID
 		msg.Attributes[attrEntryTime] = timeToSecondsString(msg.PublishTime)
 		if err := d.transportMessage(ctx, msg); err != nil {
 			logError(msg, "message cannot be transported with error:%v", err)
@@ -87,11 +86,12 @@ func (d *delayService) transportMessage(ctx context.Context, m *pubsub.Message) 
 	}
 	// new message
 	msg := &pubsub.Message{
-		Data:       m.Data,
-		Attributes: m.Attributes,
+		Data:        m.Data,
+		Attributes:  m.Attributes,
+		PublishTime: m.PublishTime,
 	}
 	if isVerbose(msg) {
-		logDebug(msg, "publish message [%s] to [%s]", msg.Attributes[attrOriginalMessageID], nextQueue.Topic)
+		logDebug(msg, "publish message [%s] to [%s]", m.ID, nextQueue.Topic)
 	}
 	d.topicNamed(nextQueue.Topic).Publish(ctx, msg)
 	// if the message wants to be mirrored in DataStore then save it
@@ -124,11 +124,10 @@ func (d *delayService) publishToDestination(ctx context.Context, m *pubsub.Messa
 		Attributes: m.Attributes,
 	}
 	updatePublishCount(msg)
-	if isVerbose(msg) {
-		msg.ID = msg.Attributes[attrOriginalMessageID]
-		logDebug(msg, "publish message to [%s]", destination)
-	}
 	d.topicNamed(destination).Publish(ctx, msg)
+	if isVerbose(msg) {
+		logDebug(msg, "published message to [%s]", destination)
+	}
 	// if in DataStore then delete it
 	if key := datastoreKey(msg); key != nil {
 		// use a different context

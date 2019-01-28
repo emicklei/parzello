@@ -9,11 +9,10 @@ import (
 )
 
 const (
-	attrOriginalMessageID = "parzello.originalMessageID"
-	attrDestinationTopic  = "parzello.destinationTopic"
-	attrPublishAfter      = "parzello.publishAfter"
-	attrPublishCount      = "parzello.publishCount"
-	attrEntryTime         = "parzello.entryTime"
+	attrDestinationTopic = "parzello.destinationTopic"
+	attrPublishAfter     = "parzello.publishAfter"
+	attrPublishCount     = "parzello.publishCount"
+	attrEntryTime        = "parzello.entryTime"
 	// if this property is available in the message attributes then all operations for this message are logged in DEBUG level.
 	attrCloudDebug = "X-Cloud-Debug"
 )

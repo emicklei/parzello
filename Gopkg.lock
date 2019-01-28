@@ -25,8 +25,8 @@
     ".",
     "task"
   ]
-  revision = "4fcb411093238b444d766e4d825135b86545b886"
-  version = "v1.7.0"
+  revision = "45828e52964544d5b656625b546dae9ed45a3347"
+  version = "v1.7.1"
 
 [[projects]]
   name = "github.com/go-yaml/yaml"
@@ -197,7 +197,7 @@
     "googleapis/type/latlng",
     "protobuf/field_mask"
   ]
-  revision = "8819c946db4494a2259bf100a377f51aa585d893"
+  revision = "aa24cbd621fe1e2867110ea8c673d99a1a92efdc"
 
 [[projects]]
   name = "google.golang.org/grpc"
