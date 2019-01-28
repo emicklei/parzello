@@ -37,7 +37,7 @@ Using a configuration, you must specify which intermediary topics you have creat
 
 ## mirror messages
 
-When messages are being retried multiple times, it can very helpful to inspect those messages to see the reason and the payload of such a message. To support this in `parzello`, messages can be mirrored in a DataStore by indicating this using the `parzello.datastoreMirror` and `parzello.datastoreInfo` properties. Message stored in DataStore can be easily queries using the Google Cloud Console. Once a message is published to its destination topic, it will also be deleted from the DataStore.
+When messages are being retried multiple times, it can very helpful to inspect those messages to see the reason and the payload of such a message. To support this in `parzello`, messages can be mirrored in a DataStore by indicating this using the `parzello.datastoreLookup` and `parzello.datastoreInfo` properties. Message stored in DataStore can be easily queries using the Google Cloud Console. Once a message is published to its destination topic, it will also be deleted from the DataStore.
 
 ![](./doc/parzello_delay.png)
 
@@ -62,8 +62,8 @@ By passing publisch count metadata to the retry message, a subscriber can inspec
 |---------------------------|-----------|--------
 |parzello.destinationTopic  |true       |topic to which the message eventually must be published
 |parzello.publishAfter      |false      |Unix time (seconds after 1970) after which the message must be published
-|parzello.datastoreMirror   |false      |if set to "true" then also store the message with payload in DataStore for querying
-|parzello.datastoreInfo     |false      |use this field to add context information in the DataStore
+|parzello.datastoreLookup   |false      |if set to some lookup value (e.g. an entity identifier) then also store the message with payload in DataStore for querying
+|parzello.datastoreInfo     |false      |use this field to add context information to the message stored in the DataStore
 |X-Cloud-Debug              |false      |if set to some identifier then for this message debug logging is produced
 
 #### properties on a message received through `parzello`

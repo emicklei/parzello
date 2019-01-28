@@ -72,5 +72,5 @@ func needsDatastoreMirror(m *pubsub.Message) bool {
 	if m.Attributes == nil {
 		return false
 	}
-	return m.Attributes[attrDataStoreMirror] == "true"
+	return len(m.Attributes[attrDataStoreLookup]) > 0
 }

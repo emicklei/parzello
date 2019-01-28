@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	attrDataStoreMirror = "parzello.datastoreMirror" // true or false
+	attrDataStoreLookup = "parzello.datastoreLookup" // some identifier
 	attrDataStoreInfo   = "parzello.datastoreInfo"   // set by Publisher to allow query
 	attrDataStoreKey    = "parzello.datastoreKey"    // set by Parzello for delete
 
@@ -18,10 +18,12 @@ const (
 )
 
 type PubSubRecord struct {
+	Lookup           string
 	Info             string
 	PublishAfter     time.Time
 	DestinationTopic string
 	PublishCount     int
+	PublishTime      time.Time
 	EntryTime        time.Time
 	Payload          []byte
 	Properties       string // JSON representation
@@ -30,10 +32,12 @@ type PubSubRecord struct {
 func newPubSubMessageRecord(m *pubsub.Message) *PubSubRecord {
 	data, _ := json.Marshal(m.Attributes)
 	return &PubSubRecord{
+		Lookup:           m.Attributes[attrDataStoreLookup],
 		Info:             m.Attributes[attrDataStoreInfo],
 		PublishAfter:     publishAfter(m),
 		DestinationTopic: m.Attributes[attrDestinationTopic],
 		PublishCount:     publishCount(m),
+		PublishTime:      m.PublishTime,
 		EntryTime:        entryTime(m),
 		Payload:          m.Data,
 		Properties:       string(data),
@@ -64,4 +68,8 @@ func newDatastoreKey(m *pubsub.Message) *datastore.Key {
 	k := datastore.NameKey(kindDatastore, id, nil)
 	k.Namespace = "parzello"
 	return k
+}
+
+func datastoreLookup(m *pubsub.Message) string {
+	return m.Attributes[attrDataStoreLookup]
 }

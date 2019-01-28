@@ -106,7 +106,7 @@ func (d *delayService) transportMessage(ctx context.Context, m *pubsub.Message) 
 	// use a different context
 	_, err = d.datastoreClient.Put(context.Background(), k, newPubSubMessageRecord(msg))
 	if isVerbose(msg) {
-		logDebug(msg, "add mirror copy to datastore with key [%s]", k.Name)
+		logDebug(msg, "add mirror copy of [parzello.datastoreLookup=%s] to datastore with key [%s]", datastoreLookup(msg), k.Name)
 	}
 	if err != nil {
 		logWarn(msg, "unable to mirror message because [%v]", err)
@@ -136,7 +136,7 @@ func (d *delayService) publishToDestination(ctx context.Context, m *pubsub.Messa
 			logWarn(msg, "unable to delete datastore entry because [%v]", err)
 		} else {
 			if isVerbose(msg) {
-				logDebug(msg, "deleted message [%s] from datastore", key.Name)
+				logDebug(msg, "deleted message [parzello.datastoreLookup=%s] with key [%s] from datastore", datastoreLookup(msg), key.Name)
 			}
 		}
 	}

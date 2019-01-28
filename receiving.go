@@ -21,7 +21,7 @@ func loopReceiveParcels(client *pubsub.Client, q Queue, service *delayService) {
 			now := time.Now()
 			after, err := timeFromSecondsString(msg.Attributes[attrPublishAfter])
 			if err != nil {
-				logError(msg, "message has invalid [%s] attribute:%v\n", attrPublishAfter, err)
+				logError(msg, "message has invalid [%s] attribute:%v", attrPublishAfter, err)
 				return
 			}
 			// if the message was fetched too soon then cancel this receive and enter a sleep
@@ -50,7 +50,7 @@ func loopReceiveParcels(client *pubsub.Client, q Queue, service *delayService) {
 			delayBeforeReceive = q.Duration // do not wait longer than specified by the queue
 		}
 		if *oVerbose {
-			logDebug(nil, "delay start receiving from subscription [%s] for [%v]\n", q.Subscription, delayBeforeReceive)
+			logDebug(nil, "delay start receiving from subscription [%s] for [%v]", q.Subscription, delayBeforeReceive)
 		}
 		time.Sleep(delayBeforeReceive)
 	}

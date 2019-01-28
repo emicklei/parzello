@@ -36,7 +36,7 @@ func main() {
 			Attributes: map[string]string{
 				"parzello.destinationTopic": "parzello_destination",
 				"parzello.publishAfter":     fmt.Sprintf("%d", after.Unix()),
-				"parzello.datastoreMirror":  "true",
+				"parzello.datastoreLookup":  strconv.Itoa(i),
 				"parzello.datastoreInfo":    "parzello-example info",
 				"X-Cloud-Debug":             "parzello-example",
 			},
