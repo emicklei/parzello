@@ -50,8 +50,5 @@ func tracker(m *pubsub.Message) string {
 	if len(t) == 0 {
 		return ""
 	}
-	if len(m.ID) == 0 {
-		return t
-	}
-	return fmt.Sprintf("%s : %s", t, m.ID)
+	return t
 }

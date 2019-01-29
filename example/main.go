@@ -37,8 +37,8 @@ func main() {
 				"parzello.destinationTopic": "parzello_destination",
 				"parzello.publishAfter":     fmt.Sprintf("%d", after.Unix()),
 				"parzello.datastoreLookup":  strconv.Itoa(i),
-				"parzello.datastoreInfo":    "parzello-example info",
-				"X-Cloud-Debug":             "parzello-example",
+				"parzello.datastoreInfo":    "parzello-example-6-info",
+				"X-Cloud-Debug":             "parzello-example-6",
 			},
 		}
 		r := topic.Publish(ctx, msg)

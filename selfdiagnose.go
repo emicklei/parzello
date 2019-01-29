@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net/http"
 	"os"
 
 	selfdiagnose "github.com/emicklei/go-selfdiagnose"
@@ -24,13 +23,4 @@ func addSelfdiagnose() {
 		}
 		selfdiagnose.Register(task.ReportVariables{VariableMap: m, Description: "Google AppEngine Environment"})
 	}
-	// start a HTTP server
-	port := os.Getenv("PORT")
-	if len(port) == 0 {
-		port = "8080"
-	}
-	webServer := &http.Server{Addr: ":" + port}
-	logInfo("HTTP api is listening on %s", port)
-	logInfo("open http://localhost:%s/internal/selfdiagnose.html", port)
-	webServer.ListenAndServe()
 }

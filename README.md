@@ -53,6 +53,8 @@ When messages are being retried multiple times, it can very helpful to inspect t
 
 ![](./doc/parzello_datastore.png)
 
+( Name,DestinationTopic,EntryTime,Info,Lookup,Payload,Properties,PublishAfter,PublishCount,PublishTime )
+
 ## usage
 
 ### message attributes
@@ -63,6 +65,7 @@ When messages are being retried multiple times, it can very helpful to inspect t
 |---------------------------|-----------|--------
 |parzello.destinationTopic  |true       |topic to which the message eventually must be published
 |parzello.publishAfter      |true       |Unix time (seconds after 1970) after which the message must be published
+|parzello.publishCount      |false.     |if set then parzello with increment the value before publishing to the destionationTopic
 |parzello.datastoreLookup   |false      |if set to some lookup value (e.g. an entity identifier) then also store the message with payload in DataStore for querying
 |parzello.datastoreInfo     |false      |use this field to add context information to the message stored in the DataStore
 |X-Cloud-Debug              |false      |if set to some identifier then for this message debug logging is produced
@@ -73,7 +76,18 @@ When messages are being retried multiple times, it can very helpful to inspect t
 |---------------------------|-------
 |parzello.publishCount      |set to 1 if missing otherwise it is incremented when received by parzello
 
-### server config
+
+## REST API
+
+The REST API is for querying the DataStore using simple queries that may not be possible using GQL, the query language for Google DataStore.
+
+#### /count?Lookup=your-value&Info=other-value
+
+Returns the number of mirrored messages stored in the DataStore.
+If the `Lookup` is given then use that as a filter (WHERE condition).
+If the `Info` is given then use that as a filter (WHERE condition).
+
+## Config
 
 The `parzello` server configuration (YAML) lists one or more queues (intermediate topic+subscriptions).
 This example show 2 such queues. 
@@ -90,17 +104,24 @@ A duration string is a possibly signed sequence of decimal numbers, each with op
       subscription: parzello_five_minutes
       duration: 5m
 
-## docker build
+## Google AppEngine Deployment
 
-    cd docker && docker build -t parzello .
+### Google PubSub topics and subscriptions
 
-## docker run
+Before deploying the parzello application, you need to setup the required infrastructure:
 
-    docker run -it \
-        -v ~/.config/gcloud/:/gcloud \
-        -e GOOGLE_APPLICATION_CREDENTIALS=/gcloud/application_default_credentials.json \
-        parzello
+- make sure Google AppEngine is enabled
+- make sure all PubSub topics mentioned in the configuration are created
+- make sure all PubSub subscriptions mentioned in the configuration are created
 
-## run development
+See [https://cloud.google.com/sdk/gcloud/reference/pubsub/](https://cloud.google.com/sdk/gcloud/reference/pubsub/)
+
+### deploy as a service
+
+As the app.yaml specifies the service to be `parzello`, Google AppEngine needs to have an application deployed as default first. Alternatively, you modify the app.yaml file and set the service to default instead. Note that `parzello` requires Flex deployment because it start background processes to consumer subscriptions.
+
+    gcloud app deploy
+
+## Development
 
     make run

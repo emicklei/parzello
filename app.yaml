@@ -1,2 +1,4 @@
-runtime: go111
+runtime: go
 service: parzello
+# must use flex because of background processing
+env: flex

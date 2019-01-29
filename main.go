@@ -4,7 +4,8 @@ import (
 	"context"
 	"flag"
 	"log"
-	"sync"
+	"net/http"
+	"os"
 
 	"cloud.google.com/go/datastore"
 	"cloud.google.com/go/pubsub"
@@ -40,29 +41,42 @@ func main() {
 	config.checkDataStoreAccessible(datastoreClient)
 	config.checkTopicsAndSubscriptions(pubsubClient)
 
+	// start inbound receive process
 	service := newDelayService(config, pubsubClient, datastoreClient)
-	g := new(sync.WaitGroup)
-	g.Add(1)
 	go func() {
 		logInfo("ready to accept messages from subscription [%s]", config.Subscription)
 		if err := service.Accept(ctx); err != nil {
 			log.Println("accept failed", err)
 		}
-		g.Done()
 	}()
-	// schedule listeners
+	// start internal receiver processes
 	for _, each := range config.Queues {
-		g.Add(1)
 		go func(next Queue) {
 			loopReceiveParcels(pubsubClient, next, service)
-			g.Done()
 		}(each)
 	}
-	// add selfdiagnose
-	g.Add(1)
-	go func() {
-		addSelfdiagnose()
-		g.Done()
-	}()
-	g.Wait()
+	addSelfdiagnose()
+	addAPI(datastoreClient, config)
+	startHTTP()
+}
+
+func addAPI(d *datastore.Client, c Config) {
+	api := NewAPI(d, c)
+	http.HandleFunc("/count", api.counts)
+}
+
+func startHTTP() {
+	// start a HTTP server
+	port := os.Getenv("PORT")
+	if len(port) == 0 {
+		port = "8080"
+	}
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/internal/selfdiagnose.html", http.StatusTemporaryRedirect)
+	})
+
+	webServer := &http.Server{Addr: ":" + port}
+	logInfo("HTTP api is listening on %s", port)
+	logInfo("[DEV] open http://localhost:%s/internal/selfdiagnose.html", port)
+	webServer.ListenAndServe()
 }
