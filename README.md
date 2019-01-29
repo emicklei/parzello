@@ -65,7 +65,7 @@ When messages are being retried multiple times, it can very helpful to inspect t
 |---------------------------|-----------|--------
 |parzello.destinationTopic  |true       |topic to which the message eventually must be published
 |parzello.publishAfter      |true       |Unix time (seconds after 1970) after which the message must be published
-|parzello.publishCount      |false.     |if set then parzello with increment the value before publishing to the destionationTopic
+|parzello.publishCount      |false      |if set then the value is incremented before publishing to the destionationTopic
 |parzello.datastoreLookup   |false      |if set to some lookup value (e.g. an entity identifier) then also store the message with payload in DataStore for querying
 |parzello.datastoreInfo     |false      |use this field to add context information to the message stored in the DataStore
 |X-Cloud-Debug              |false      |if set to some identifier then for this message debug logging is produced
