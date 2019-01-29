@@ -50,8 +50,8 @@ func (d *delayService) Accept(ctx context.Context) error {
 			return
 		}
 		if isVerbose(msg) {
-			logDebug(msg, "accepted message from subscription [%s] to be delivered to [%s] on or after [%v]",
-				d.config.Subscription, destination, after)
+			logDebug(msg, "accepted message from subscription [%s] to be delivered to [%s] on or after [%v], delay [%v]",
+				d.config.Subscription, destination, after, after.Sub(time.Now()))
 		}
 		msg.Attributes[attrEntryTime] = timeToSecondsString(msg.PublishTime)
 		if err := d.transportMessage(ctx, msg); err != nil {

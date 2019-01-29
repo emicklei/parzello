@@ -29,24 +29,29 @@ func logError(m *pubsub.Message, format string, args ...interface{}) {
 	logLevel("ERROR", m, format, args...)
 }
 func logLevel(level string, m *pubsub.Message, format string, args ...interface{}) {
-	log.Printf("[%s] %s: %s\n", tracker(m), level, fmt.Sprintf(format, args...))
+	t := tracker(m)
+	if len(t) == 0 {
+		log.Printf("%s: %s\n", level, fmt.Sprintf(format, args...))
+		return
+	}
+	log.Printf("[ %s ] %s: %s\n", t, level, fmt.Sprintf(format, args...))
 }
 func tracker(m *pubsub.Message) string {
 	if m == nil {
-		return "-"
+		return ""
 	}
 	if m.Attributes == nil {
-		return "-"
+		return ""
 	}
 	t, ok := m.Attributes[attrCloudDebug]
 	if !ok {
-		return "-"
+		return ""
 	}
 	if len(t) == 0 {
-		return "-"
+		return ""
 	}
 	if len(m.ID) == 0 {
 		return t
 	}
-	return fmt.Sprintf("%s:%s", t, m.ID)
+	return fmt.Sprintf("%s : %s", t, m.ID)
 }
