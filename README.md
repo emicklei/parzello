@@ -45,11 +45,11 @@ For example, a message that needs to be delivered after 8 minutes will be publis
 ![](./doc/parzello_delay_retry.png)
 
 In the next design, `parzello` is used to retry publishing a message at a later moment.
-By passing publisch count metadata to the retry message, a subscriber can inspect this value and behave accordingly (i.e abort on MaxRetries).
+By passing publish count metadata (parzello.publishCount) to the message, a subscriber can inspect this value and behave accordingly (i.e abort on when this value exceeds the maximum retries).
 
 ## mirror messages
 
-When messages are being retried multiple times, it can very helpful to inspect those messages to see the reason and the payload of such a message. To support this in `parzello`, messages can be mirrored in a DataStore by indicating this using the `parzello.datastoreLookup` and `parzello.datastoreInfo` properties. Message stored in DataStore can be easily queried using the Google Cloud Console. Once a message is published to its destination topic, it will also be deleted from the DataStore.
+When messages are being retried multiple times, it can very helpful to inspect those messages to see the reason and the payload of such a message. To support this in `parzello`, messages can be mirrored in a DataStore by indicating this using the `parzello.datastoreLookup` and `parzello.datastoreInfo` properties. Message stored in DataStore can be easily queried and counted (see REST API) using the Google Cloud Console. Once a message is published to its destination topic, it will also be deleted from the DataStore.
 
 ![](./doc/parzello_datastore.png)
 
@@ -74,14 +74,14 @@ When messages are being retried multiple times, it can very helpful to inspect t
 
 |name                       |comment
 |---------------------------|-------
-|parzello.publishCount      |set to 1 if missing otherwise it is incremented when received by parzello
+|parzello.publishCount      |set to 1 if missing otherwise it is incremented when received by parzello. So the publisher should add this property on every retry.
 
 
 ## REST API
 
 The REST API is for querying the DataStore using simple queries that may not be possible using GQL, the query language for Google DataStore.
 
-#### /count?Lookup=your-value&Info=other-value
+#### /v1/count?Lookup=your-value&Info=other-value
 
 Returns the number of mirrored messages stored in the DataStore.
 If the `Lookup` is given then use that as a filter (WHERE condition).
@@ -118,7 +118,9 @@ See [https://cloud.google.com/sdk/gcloud/reference/pubsub/](https://cloud.google
 
 ### deploy as a service
 
-As the app.yaml specifies the service to be `parzello`, Google AppEngine needs to have an application deployed as default first. Alternatively, you modify the app.yaml file and set the service to default instead. Note that `parzello` requires Flex deployment because it start background processes to consumer subscriptions.
+As the app.yaml specifies the service to be `parzello`, Google AppEngine needs to have an application deployed as default first.
+Alternatively, you modify the app.yaml file and set the service to default instead. 
+Note that `parzello` requires Flex deployment because it starts background processes to consume subscriptions.
 
     gcloud app deploy
 

@@ -62,7 +62,7 @@ func main() {
 
 func addAPI(d *datastore.Client, c Config) {
 	api := NewAPI(d, c)
-	http.HandleFunc("/count", api.counts)
+	http.HandleFunc("/v1/count", api.counts)
 }
 
 func startHTTP() {
