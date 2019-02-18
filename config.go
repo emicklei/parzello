@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"sort"
@@ -9,6 +10,7 @@ import (
 
 	"cloud.google.com/go/datastore"
 	"cloud.google.com/go/pubsub"
+	selfdiagnose "github.com/emicklei/go-selfdiagnose"
 	"github.com/go-yaml/yaml"
 )
 
@@ -46,6 +48,9 @@ func (c Config) checkTopicsAndSubscriptions(client *pubsub.Client) {
 	if !ok {
 		log.Fatalf("subscription [%s] does not exist", c.Subscription)
 	}
+	// register task for future detection
+	selfdiagnose.Register(&CheckSubscriptionTask{Client: client, Subscription: c.Subscription})
+
 	// check all queues
 	for _, each := range c.Queues {
 		ok, err := client.Topic(each.Topic).Exists(ctx)
@@ -64,6 +69,10 @@ func (c Config) checkTopicsAndSubscriptions(client *pubsub.Client) {
 		if !ok {
 			log.Fatalf("subscription [%s] does not exist", each.Subscription)
 		}
+		// register task for future detection
+		selfdiagnose.Register(&CheckTopicTask{Client: client, Topic: each.Topic})
+		selfdiagnose.Register(&CheckSubscriptionTask{Client: client, Subscription: each.Subscription})
+		selfdiagnose.Register(selfdiagnose.ReportMessage{Message: fmt.Sprintf("subscription [%s] is pulled every [%v]", each.Subscription, each.Duration)})
 	}
 }
 
