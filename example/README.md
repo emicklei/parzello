@@ -2,6 +2,7 @@
 
 ## prepare infrastructure
 
+    gcloud pubsub topics create parzello_inbound_topic
     gcloud pubsub topics create parzello_destination
     gcloud pubsub topics create parzello_minute
     gcloud pubsub topics create parzello_five_minutes
