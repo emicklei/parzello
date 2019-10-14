@@ -32,7 +32,13 @@ type Config struct {
 	Project      string `yaml:"project-id"`
 	Subscription string `yaml:"subscription"`
 	// Queues is sorted by Duration, shortest first
-	Queues []Queue `yaml:"queues"`
+	Queues    []Queue     `yaml:"queues"`
+	BasicAuth Credentials `yaml:"basic-auth"`
+}
+
+type Credentials struct {
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 }
 
 func (c Config) checkTopicsAndSubscriptions(client *pubsub.Client) {

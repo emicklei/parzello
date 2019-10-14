@@ -103,6 +103,10 @@ A duration string is a possibly signed sequence of decimal numbers, each with op
     - topic: parzello_five_minutes
       subscription: parzello_five_minutes
       duration: 5m
+  
+    basic-auth:
+      username: parzello
+      password: parzello
 
 ## Google AppEngine Deployment
 

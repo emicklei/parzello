@@ -55,14 +55,16 @@ func main() {
 			loopReceiveParcels(pubsubClient, next, service)
 		}(each)
 	}
-	addSelfdiagnose()
+
+	addSelfdiagnose(config)
 	addAPI(datastoreClient, config)
 	startHTTP()
 }
 
 func addAPI(d *datastore.Client, c Config) {
 	api := NewAPI(d, c)
-	http.HandleFunc("/v1/count", api.counts)
+	basicAuth := NewBasicAuthHandler(c.BasicAuth.Username, c.BasicAuth.Password, api)
+	http.Handle("/v1/count", basicAuth)
 }
 
 func startHTTP() {

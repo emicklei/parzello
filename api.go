@@ -21,7 +21,7 @@ func NewAPI(d *datastore.Client, c Config) *API {
 }
 
 // /v1/count?Lookup=1
-func (a *API) counts(w http.ResponseWriter, r *http.Request) {
+func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		io.WriteString(w, err.Error())
