@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 
 	"cloud.google.com/go/pubsub"
@@ -10,9 +11,14 @@ import (
 	"github.com/emicklei/go-selfdiagnose/task"
 )
 
-func addSelfdiagnose() {
+func addSelfdiagnose(c Config) {
 	// add http handlers for /internal/selfdiagnose.(html|json|xml)
-	selfdiagnose.AddInternalHandlers()
+	selfdiagnoseHandler := NewBasicAuthHandler(c.BasicAuth.Username, c.BasicAuth.Password, selfdiagnose.Handler())
+	http.Handle("/internal/selfdiagnose", selfdiagnoseHandler)
+	http.Handle("/internal/selfdiagnose.html", selfdiagnoseHandler)
+	http.Handle("/internal/selfdiagnose.xml", selfdiagnoseHandler)
+	http.Handle("/internal/selfdiagnose.json", selfdiagnoseHandler)
+
 	selfdiagnose.Register(task.ReportHttpRequest{})
 	selfdiagnose.Register(task.ReportHostname{})
 	selfdiagnose.Register(task.ReportCPU())
