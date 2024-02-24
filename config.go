@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"log"
+	"os"
 	"sort"
 	"time"
 
 	"cloud.google.com/go/pubsub"
-	"github.com/go-yaml/yaml"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // Queue is a topic,subscription pair for storing Parcels for some duration.
@@ -67,7 +67,7 @@ func (c Config) checkTopicsAndSubscriptions(client *pubsub.Client) {
 }
 
 func loadConfig() (config Config, err error) {
-	data, err := ioutil.ReadFile(*oConfig)
+	data, err := os.ReadFile(*oConfig)
 	if err != nil {
 		return
 	}

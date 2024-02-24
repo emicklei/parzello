@@ -12,7 +12,7 @@ import (
 var (
 	oVerbose = flag.Bool("v", false, "verbose logging")
 	oConfig  = flag.String("c", "parzello.yaml", "location of configuration")
-	version  = "0.2"
+	version  = "0.3"
 )
 
 func main() {
