@@ -11,7 +11,7 @@ import (
 	"cloud.google.com/go/datastore"
 	"cloud.google.com/go/pubsub"
 	selfdiagnose "github.com/emicklei/go-selfdiagnose"
-	"github.com/go-yaml/yaml"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // Queue is a topic,subscription pair for storing Parcels for some duration.
